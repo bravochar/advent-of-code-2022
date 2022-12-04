@@ -55,7 +55,7 @@ fn part_1() {
     }
 
     // Print the answer to the first part
-    println!("Answer: {:?}", sum);
+    println!("First Answer: {:?}", sum);
 }
 
 
@@ -65,18 +65,37 @@ fn part_2() {
     let reader = BufReader::new(file);
 
     // Read file line by line
+    let mut sum = 0;
+    let mut group = Vec::new();
     for line in reader.lines() {
         let line_str = line.expect("Couldn't read line as string?");
-        println!("{}", line_str)
+
+        group.push(line_str);
+        if group.len() < 3 {
+            continue;
+        }
+
+        let elf_3 = group.pop().unwrap();
+        let elf_2 = group.pop().unwrap();
+        let elf_1 = group.pop().unwrap();
+
+        // find common characters
+        for c in elf_1.chars() {
+            if elf_2.contains(c) && elf_3.contains(c) {
+                sum += letter_to_priority(c);
+                break;
+            }
+        }
     }
 
     // Print the answer to the second part
+    println!("Second Answer: {:?}", sum);
 }
 
 fn main() {
     println!("Advent of Code, Day 3");
 
     part_1();
-    //part_2();
+    part_2();
 }
 
