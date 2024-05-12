@@ -1,15 +1,83 @@
 
+use core::num;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
-//const FILENAME: &str = "./input";
-const FILENAME: &str = "./test";
+const FILENAME: &str = "./input";
+//const FILENAME: &str = "./test";
 
 // Packet data is either an integer or a tuple
+#[derive(Clone)]
 #[derive(Debug)]
 enum PacketData {
     Integer( i32 ),
     List( Vec<PacketData> ),
+}
+
+fn compare_packet_lists(left: &Vec<PacketData>, right: &Vec<PacketData>) -> i32 {
+    let mut left_iter = left.iter();
+    let mut right_iter = right.iter();
+
+    loop {
+        if let Some(l) = left_iter.next() {
+            if let Some(r) = right_iter.next() {
+                let rval = compare_packets(&l, &r);
+                if rval > 0 {
+                    return 1;
+                } else if rval < 0 {
+                    return -1;
+                }
+            } else {
+                return 1;
+            }
+        } else {
+            if let Some(_) = right_iter.next() {
+                return -1;
+            }
+
+            break;
+        }
+    }
+
+    return 0;
+}
+
+fn compare_packets(left: &PacketData, right: &PacketData) -> i32 {
+    match left {
+        PacketData::Integer(l) => {
+            match right {
+                PacketData::Integer(r) => {
+                    if l < r {
+                        return -1;
+                    } else if l > r {
+                        return 1;
+                    }
+                },
+                PacketData::List(r) => {
+                    let l_list = vec!(left.clone());
+                    return compare_packet_lists(&l_list, r);
+                }
+            }
+        },
+        PacketData::List(l) => {
+            match right {
+                PacketData::List(r) => {
+                    let rval = compare_packet_lists(l, r);
+                    if rval > 0 {
+                        return 1;
+                    } else if rval < 0 {
+                        return -1;
+                    }
+                },
+                PacketData::Integer(_) => {
+                    let r_list = vec!(right.clone());
+                    return compare_packet_lists(l, &r_list);
+                }
+            }
+        },
+    }
+
+    return 0
 }
 
 fn packet_from_list(line: &str) -> PacketData {
@@ -69,7 +137,8 @@ fn packet_from_list(line: &str) -> PacketData {
 }
 
 // read in the file and store in a 2-D vector
-fn read_packets() {
+fn read_packets() -> Vec<PacketData> {
+    let mut rval: Vec<PacketData> = Vec::new();
     // Open the file
     let file = File::open(FILENAME).unwrap();
     let mut reader = BufReader::new(file);
@@ -85,12 +154,35 @@ fn read_packets() {
 
         let packet = packet_from_list(&line);
 
-        println!("{:?}", packet);
+        rval.push(packet);
     }
+    rval
 }
 
 fn part_1() {
-    read_packets();
+    let packets = read_packets();
+
+    let mut num_ordered = 0;
+    let mut ordered_indices = Vec::new();
+    let mut i = 1;
+    for packet_pair in packets.chunks_exact(2) {
+        let (left, right) = (
+            &packet_pair[0], &packet_pair[1]);
+
+        // TODO: compare left and right
+        if compare_packets(left, right) < 0 {
+            num_ordered += 1;
+            ordered_indices.push(i);
+        }
+        i += 1;
+    }
+
+    let mut sum = 0;
+    for i in ordered_indices {
+        sum += i;
+    }
+
+    println!("Sum of ordered pair indices: {}", sum);
 }
 
 fn part_2() {
