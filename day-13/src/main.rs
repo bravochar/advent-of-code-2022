@@ -64,6 +64,27 @@ fn compare_packets(left: &PacketData, right: &PacketData) -> Ordering {
     }
 }
 
+impl Ord for PacketData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        compare_packets(self, other)
+    }
+}
+
+impl PartialOrd for PacketData {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+
+impl PartialEq for PacketData {
+    fn eq(&self, other: &Self) -> bool {
+        compare_packets(self, other) == Ordering::Equal
+    }
+}
+
+impl Eq for PacketData { }
+
 fn packet_from_list(line: &str) -> PacketData {
     let mut rval: Vec<PacketData> = Vec::new();
 
@@ -152,9 +173,7 @@ fn part_1() {
         let (left, right) = (
             &packet_pair[0], &packet_pair[1]);
 
-        // TODO: compare left and right
-        let c = compare_packets(left, right);
-        if c == Ordering::Less {
+        if left.cmp(right) == Ordering::Less {
             ordered_indices.push(i);
         }
         i += 1;
@@ -176,15 +195,15 @@ fn part_2() {
     packets.push(div_1.clone());
     packets.push(div_2.clone());
 
-    packets.sort_by(compare_packets);
+    packets.sort();
 
     let mut i = 1;
     let mut decoder_key = 1;
     for p in packets.iter() {
-        if compare_packets(p, &div_1) == Ordering::Equal {
+        if div_1.eq(p) {
             decoder_key *= i;
         }
-        if compare_packets(p, &div_2) == Ordering::Equal {
+        if div_2.eq(p) {
             decoder_key *= i;
         }
         
