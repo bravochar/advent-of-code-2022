@@ -4,8 +4,8 @@ use std::cmp;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
-const FILENAME: &str = "./input";
-//const FILENAME: &str = "./test";
+//const FILENAME: &str = "./input";
+const FILENAME: &str = "./test";
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum PointState {
