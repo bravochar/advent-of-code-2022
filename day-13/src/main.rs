@@ -62,8 +62,6 @@ fn compare_packets(left: &PacketData, right: &PacketData) -> Ordering {
             }
         },
     }
-
-    return Ordering::Equal;
 }
 
 fn packet_from_list(line: &str) -> PacketData {
@@ -148,7 +146,6 @@ fn read_packets() -> Vec<PacketData> {
 fn part_1() {
     let packets = read_packets();
 
-    let mut num_ordered = 0;
     let mut ordered_indices = Vec::new();
     let mut i = 1;
     for packet_pair in packets.chunks_exact(2) {
@@ -158,7 +155,6 @@ fn part_1() {
         // TODO: compare left and right
         let c = compare_packets(left, right);
         if c == Ordering::Less {
-            num_ordered += 1;
             ordered_indices.push(i);
         }
         i += 1;

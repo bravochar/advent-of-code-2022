@@ -45,22 +45,27 @@ impl Monkey {
     }
 }
 
+#[allow(dead_code)]
 fn test0_mut(item: i64) -> i64 {
     item * 19
 }
 
+#[allow(dead_code)]
 fn test1_mut(item: i64) -> i64 {
     item + 6
 }
 
+#[allow(dead_code)]
 fn test2_mut(item: i64) -> i64 {
     item * item
 }
 
+#[allow(dead_code)]
 fn test3_mut(item: i64) -> i64 {
     item + 3
 }
 
+#[allow(dead_code)]
 fn test_monkeys() -> Vec::<Monkey> {
     let test_0 = Monkey {
       items: VecDeque::from([79, 98]),
@@ -216,7 +221,7 @@ fn monkey_take_turn( monkeys: &mut Vec<Monkey>, i: usize) ->(VecDeque<i64>, VecD
 }
 
 fn main() {
-    let mut monkeys = test_monkeys();
+    //let mut monkeys = test_monkeys();
     let mut monkeys = input_monkeys();
     
     for _ in 0..ROUNDS {

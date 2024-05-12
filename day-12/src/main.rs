@@ -174,7 +174,6 @@ fn find_best_path(mut paths: Vec::<Vec::<Point>>, mut hills: Vec::<Vec::<Hill>>,
 
     // main loop
     //print_paths(&paths);
-    let mut round = 0;
     while !paths.is_empty() {
         // take another step along each path
         (paths, hills) = take_a_step(paths, hills);
@@ -189,9 +188,6 @@ fn find_best_path(mut paths: Vec::<Vec::<Point>>, mut hills: Vec::<Vec::<Hill>>,
                 return path.clone();
             }
         }
-
-        round += 1;
-        //println!("Completed {} rounds; evaluating {} paths", round, paths.len());
     }
 
     println!("Could not find path to end {:?}", e);
@@ -210,12 +206,14 @@ fn find_best_path_from_point(mut hills: Vec::<Vec::<Hill>>, s: Point, e: Point) 
     return find_best_path(paths, hills, e);
 }
 
+/*
 fn print_paths(paths: &Vec::<Vec::<Point>>) {
     println!("Paths:");
     for path in paths {
         println!("  {:?}", path);
     }
 }
+*/
 
 fn find_hill_char(hills: &Vec::<Vec::<Hill>>, c: char) -> Result<Point, String> {
     for (y, row) in hills.iter().enumerate() {

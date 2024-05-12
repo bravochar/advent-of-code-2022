@@ -25,10 +25,12 @@ impl DirEntry {
         }
     }
 
+    #[allow(dead_code)]
     fn eq(&self, other: &Self) -> bool {
         self.path.eq(&other.path)
     }
 
+    #[allow(dead_code)]
     fn is_path(&self, path: &str) -> bool {
         if self.path.eq(path) {
             return true;
@@ -106,9 +108,6 @@ fn part_1() {
     let file = File::open(FILENAME).unwrap();
     let reader = BufReader::new(file);
 
-    // init state for answer
-    let mut answer = 0;
-
     // track current directory
     let mut pwd = String::new();
     let mut proc_output = false;
@@ -212,7 +211,6 @@ fn part_1() {
             println!("Error: couldn't add dir {:?}", cur_dir);
             return;
         }
-        cur_dir = DirEntry::new_dir("/");
     }
 
     for e in root.entries.iter() {
@@ -252,9 +250,6 @@ fn part_2() {
     let file = File::open(FILENAME).unwrap();
     let reader = BufReader::new(file);
 
-    // init state for answer
-    let mut answer = 0;
-
     // track current directory
     let mut pwd = String::new();
     let mut proc_output = false;
@@ -358,7 +353,6 @@ fn part_2() {
             println!("Error: couldn't add dir {:?}", cur_dir);
             return;
         }
-        cur_dir = DirEntry::new_dir("/");
     }
 
     // XXX: Well then, traverse the tree and save the size of all directories less than 100000
