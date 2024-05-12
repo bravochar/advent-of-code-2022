@@ -1,5 +1,5 @@
 
-use core::num;
+use std::cmp::Ordering;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
@@ -14,44 +14,35 @@ enum PacketData {
     List( Vec<PacketData> ),
 }
 
-fn compare_packet_lists(left: &Vec<PacketData>, right: &Vec<PacketData>) -> i32 {
+fn compare_packet_lists(left: &Vec<PacketData>, right: &Vec<PacketData>) -> Ordering {
     let mut left_iter = left.iter();
     let mut right_iter = right.iter();
+    let mut rval = Ordering::Equal;
 
-    loop {
+    while rval == Ordering::Equal {
         if let Some(l) = left_iter.next() {
             if let Some(r) = right_iter.next() {
-                let rval = compare_packets(&l, &r);
-                if rval > 0 {
-                    return 1;
-                } else if rval < 0 {
-                    return -1;
-                }
+                rval = compare_packets(&l, &r);
             } else {
-                return 1;
+                return Ordering::Greater;
             }
         } else {
             if let Some(_) = right_iter.next() {
-                return -1;
+                return Ordering::Less;
             }
 
             break;
         }
     }
 
-    return 0;
+    return rval;
 }
-
-fn compare_packets(left: &PacketData, right: &PacketData) -> i32 {
+fn compare_packets(left: &PacketData, right: &PacketData) -> Ordering {
     match left {
         PacketData::Integer(l) => {
             match right {
                 PacketData::Integer(r) => {
-                    if l < r {
-                        return -1;
-                    } else if l > r {
-                        return 1;
-                    }
+                    return l.cmp(r);
                 },
                 PacketData::List(r) => {
                     let l_list = vec!(left.clone());
@@ -62,12 +53,7 @@ fn compare_packets(left: &PacketData, right: &PacketData) -> i32 {
         PacketData::List(l) => {
             match right {
                 PacketData::List(r) => {
-                    let rval = compare_packet_lists(l, r);
-                    if rval > 0 {
-                        return 1;
-                    } else if rval < 0 {
-                        return -1;
-                    }
+                    return compare_packet_lists(l, r);
                 },
                 PacketData::Integer(_) => {
                     let r_list = vec!(right.clone());
@@ -77,7 +63,7 @@ fn compare_packets(left: &PacketData, right: &PacketData) -> i32 {
         },
     }
 
-    return 0
+    return Ordering::Equal;
 }
 
 fn packet_from_list(line: &str) -> PacketData {
@@ -170,7 +156,8 @@ fn part_1() {
             &packet_pair[0], &packet_pair[1]);
 
         // TODO: compare left and right
-        if compare_packets(left, right) < 0 {
+        let c = compare_packets(left, right);
+        if c == Ordering::Less {
             num_ordered += 1;
             ordered_indices.push(i);
         }
@@ -178,7 +165,7 @@ fn part_1() {
     }
 
     let mut sum = 0;
-    for i in ordered_indices {
+    for i in ordered_indices.iter() {
         sum += i;
     }
 
@@ -186,6 +173,29 @@ fn part_1() {
 }
 
 fn part_2() {
+    let mut packets = read_packets();
+
+    let div_1 = PacketData::List(vec![PacketData::Integer(2)]);
+    let div_2 = PacketData::List(vec![PacketData::Integer(6)]);
+    packets.push(div_1.clone());
+    packets.push(div_2.clone());
+
+    packets.sort_by(compare_packets);
+
+    let mut i = 1;
+    let mut decoder_key = 1;
+    for p in packets.iter() {
+        if compare_packets(p, &div_1) == Ordering::Equal {
+            decoder_key *= i;
+        }
+        if compare_packets(p, &div_2) == Ordering::Equal {
+            decoder_key *= i;
+        }
+        
+        i += 1;
+    }
+
+    println!("Decoder key: {}", decoder_key);
 }
 
 fn main() {
