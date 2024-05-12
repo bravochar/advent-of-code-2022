@@ -129,7 +129,6 @@ fn part_1() {
     //let mut i = 0;
     let mut num_grains = 0;
 
-    //for i in 0..1000 {
     loop {
         // get next point
         loop {
@@ -188,6 +187,116 @@ fn part_1() {
 }
 
 fn part_2() {
+    let rock_formation = read_file();
+
+    let mut max_x: usize = 0;
+    let mut max_y: usize = 0;
+    for rock in rock_formation.iter() {
+        for p in rock.line.iter() {
+            if p.x > max_x {
+                max_x = p.x
+            }
+            if p.y > max_y {
+                max_y = p.y
+            }
+        }
+        println!("{}", rock);
+    }
+
+    max_x *= 2;
+    max_y += 3;
+    println!("Working with grid of {} by {} for part 2", max_x, max_y);
+    let mut grid: Vec<PointState> = Vec::with_capacity(max_x * max_y);
+    for _ in 0..grid.capacity() {
+        grid.push(PointState::Air);
+    }
+
+    // fill grid with rock
+    for rock in rock_formation.iter() {
+        let mut p_1 = rock.line.first().unwrap();
+        
+        for p_2 in rock.line.iter().skip(1) {
+            for x in cmp::min(p_1.x, p_2.x)..(cmp::max(p_1.x, p_2.x) + 1) {
+                for y in cmp::min(p_1.y, p_2.y)..(cmp::max(p_1.y, p_2.y) + 1) {
+                    let p = grid.get_mut(x + max_x * y).unwrap();
+                    *p = PointState::Rock;
+                }
+            }
+            p_1 = p_2;
+        }
+    }
+
+    let mut cur_x = SAND_SOURCE.x;
+    let mut cur_y = SAND_SOURCE.y;
+    let mut next_y = SAND_SOURCE.y;
+    //let mut i = 0;
+    let mut num_grains = 0;
+
+    loop {
+        // get next point
+        loop {
+            let p = grid.get(
+                cur_x + max_x * next_y).unwrap();
+
+            if PointState::Air.eq(p) {
+                cur_y = next_y;
+                next_y += 1;
+                break;
+            }
+
+            if cur_x > 1 {
+                let p = grid.get(
+                    cur_x - 1 + max_x * next_y).unwrap();
+
+                if PointState::Air.eq(p) {
+                    cur_x -= 1;
+                    cur_y = next_y;
+                    next_y += 1;
+                    break;
+                }
+            }
+
+            if cur_x < (max_x - 2) {
+                let p = grid.get(
+                    cur_x + 1 + max_x * next_y).unwrap();
+
+                if PointState::Air.eq(p) {
+                    cur_x += 1;
+                    cur_y = next_y;
+                    next_y += 1;
+                    break;
+                }
+            }
+
+            next_y = cur_y;
+            break;
+        }
+
+        if (next_y == cur_y) || (next_y == max_y - 1) {
+            let p = grid.get_mut(
+                cur_x + max_x * cur_y).unwrap();
+            *p = PointState::Sand;
+
+            //println!("Changed state of point {},{} to SAND", cur_x, cur_y);
+            cur_x = SAND_SOURCE.x;
+            cur_y = SAND_SOURCE.y;
+            next_y = SAND_SOURCE.y;
+            num_grains += 1;
+
+            continue
+
+        } else {
+            //println!("Sand moved to {},{}", cur_x, cur_y);
+        }
+        let p = grid.get_mut(
+            SAND_SOURCE.x + max_x * SAND_SOURCE.y).unwrap();
+        if PointState::Sand.eq(p) {
+            println!("Sand stops after {} grains", num_grains);
+            break
+        }
+
+    }
+
 }
 
 fn main() {
