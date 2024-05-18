@@ -5,8 +5,8 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::collections::HashMap;
 
-//const FILENAME: &str = "./input";
-const FILENAME: &str = "./test";
+const FILENAME: &str = "./input";
+//const FILENAME: &str = "./test";
 const NUM_MIN: i32 = 30;
 
 #[derive(Clone, Debug)]
@@ -83,7 +83,6 @@ fn read_file() -> Vec<Valve> {
         let (_, line) = line.trim().split_once("Valve ").unwrap();
         let (name, line) = line.split_once(" has flow rate=").unwrap();
         let (flow_rate, line) = line.split_once("; ").unwrap();
-        println!("{}", line);
         let tunnel_iter = line.split(" ");
         let tunnels = tunnel_iter.skip(4).map(|s| {
             s.trim_end_matches(",").to_string()}).collect();
@@ -107,11 +106,11 @@ enum Step<'v> {
 impl <'v> fmt::Display for Step<'v> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
-                Step::Move(s) => {
-                    write!(f, "You move to valve {}.", s.name)
+                Step::Move(v) => {
+                    write!(f, "You move to valve {}.", v.name)
                 },
-                Step::Open(s) => {
-                    write!(f, "You open valve {}.", s.name)
+                Step::Open(v) => {
+                    write!(f, "You open valve {}.", v.name)
                 }
             }
     }
@@ -135,7 +134,7 @@ impl <'v> Path<'v> {
         }
     }
 
-    fn to_string(&self, valve_map: HashMap<String, &Valve>) -> String {
+    fn to_string(&self) -> String {
         let mut rval = String::new();
 
         let mut open_valves: Vec<String> = Vec::new();
@@ -167,7 +166,7 @@ impl <'v> Path<'v> {
             rval += "\n";
         }
 
-        rval + &format!("Total_flow: {total_flow}")
+        rval + &format!("Total_flow: {}", self.final_score())
     }
 
     fn add_step(&mut self, s: Step<'v>) {
@@ -182,18 +181,26 @@ impl <'v> Path<'v> {
         self.steps.push(s);
     }
 
+    fn final_score(&self) -> i32 {
+        let rem_time = NUM_MIN + 1 - self.steps.len() as i32;
+
+        self.total_flow + self.current_flow * rem_time
+    }
+
     fn next_steps(&self) -> Vec<String> {
         let mut rval = Vec::new();
         let last_step = self.steps.last().unwrap();
 
         let v = match last_step {
             Step::Move(v) => {
+                /*
                 if !self.open_valves.iter().any(
                     |x| {x.eq(v)}) {
                     if v.flow_rate > 0 {
                         rval.push(v.name.clone());
                     }
                 }
+                 */
                 v
             }, 
             Step::Open(v) => v
@@ -210,33 +217,86 @@ impl <'v> Path<'v> {
         return self.steps.len() as i32 - 1
     }
 
+    fn cur_valve(&self) -> &'v Valve {
+        match self.steps.last().unwrap() {
+            Step::Move(v) => v,
+            Step::Open(v) => v
+        }
+    }
+
+    fn cur_pos(&self) -> &str {
+        &self.cur_valve().name
+    }
+
+    fn can_open(&self) -> bool {
+        let v = self.cur_valve();
+
+        if v.flow_rate > 0 && !self.open_valves.iter().any(|x| {
+            x.name.contains(&v.name)}) {
+                true
+        } else {
+            false
+        }
+    }
+
     // TODO: need add_step, cmp, and best_move_n
 }
 
-fn best_path_to(p: &Path, v: &Valve, valve_map: &HashMap<String, &Valve>) -> Vec<String> {
-    let rval: Vec<String> = Vec::new();
+fn open_next_valve<'v>(
+    p: Path<'v>,
+    valve_map: &HashMap<String,
+    &'v Valve>) -> Vec<Path<'v>> {
+    let mut rvals: Vec<Path> = Vec::new();
 
-    // breadth-first search to find shortest path
-    // XXX: We will likely need to change this to look for the highest value
-    //      path in the future - but start with the basic search
-    let mut poss_steps: Vec<Vec<String>> = Vec::new();
-    for s in p.next_steps() {
-        poss_steps.push(vec![s]);
-    }
-    loop {
-        let mut new_steps: Vec<Vec<Step>> = Vec::new();
-        for p in poss_steps.iter() {
-            break;
+    /*
+     * breadth-first search to open another unopened valve
+     */
+    let mut poss_paths: Vec<Path> = Vec::new();
+    let mut visited_valves: Vec<String> = Vec::new();
+    poss_paths.push(p.clone());
+
+    let mut i = 0;
+    while !poss_paths.is_empty() {
+        let mut new_steps: Vec<Path> = Vec::new();
+        for p in poss_paths.into_iter() {
+            if p.can_open() {
+                let mut new_path = p.clone();
+                new_path.add_step(Step::Open(p.cur_valve()));
+                rvals.push(new_path);
+            }
+
+            for v_name in p.next_steps().iter() {
+                if visited_valves.iter().any(|s| {s.eq(v_name)}) {
+                    continue;
+                } else if p.steps.len() as i32 > (NUM_MIN - 1) {
+                    continue;
+                }
+                visited_valves.push(v_name.to_owned());
+
+                let v = valve_map.get(v_name).unwrap();
+                let mut new_path = p.clone();
+                new_path.add_step(Step::Move(v));
+
+                new_steps.push(new_path);
+            }
+
         }
 
+        poss_paths = new_steps;
+        i += 1;
+        /*
+        println!("{} paths after {} iterations", poss_paths.len(), i);
+        for p in poss_paths.iter() {
+            println!("  {} steps to end at {}", p.steps.len(), p.cur_pos());
+        }
+         */
     }
 
-    rval
+    rvals
 }
 
 fn part_1() {
     let valves = read_file();
-    let first_step = valves.iter().next().unwrap();
 
     // hashmap to find next move
     let mut valve_map = HashMap::new();
@@ -244,6 +304,7 @@ fn part_1() {
         valve_map.insert(v.name.clone(), v);
         println!("{}", v);
     }
+    let first_step = valve_map.get("AA").unwrap();
 
     /*
      * With 30 decisions to make, most with at least two options,
@@ -268,16 +329,33 @@ fn part_1() {
     let mut valves_left: Vec<&Valve> = valves.iter().filter(
         |v| {v.flow_rate > 0}).collect();
     valves_left.sort();
-    while p.path_len() < NUM_MIN && !valves_left.is_empty(){
-        // find largest unopened valve
-        let next_valve = valves_left.pop().unwrap();
-        println!("Moving to {} for {}", next_valve.name, next_valve.flow_rate);
+    
+    let mut high_score = 0;
+    let mut best_path = p.clone();
+    let mut paths = vec![p];
+    //while !paths.is_empty() {
+    while !paths.is_empty() {
+        let mut next_paths: Vec<Path> = Vec::new();
+        for path in paths.into_iter() {
+            if path.final_score() > high_score {
+                high_score = path.final_score();
+                best_path = path.clone();
+            }
 
-        // TODO: actually loop
-        break;
+            let new_paths = open_next_valve(path, &valve_map);
+
+            if !new_paths.is_empty() {
+                next_paths.extend(new_paths);
+            }
+        }
+
+        paths = next_paths;
+        println!("Working with {} paths", paths.len());
     }
-
-    println!("{}", p.to_string(valve_map));
+    println!("Best path of {} steps: {}",
+        best_path.steps.len(),
+        high_score);
+    println!("{}", best_path.to_string());
 }
 
 fn part_2() {
