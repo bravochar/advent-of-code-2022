@@ -1,3 +1,5 @@
+const FILENAME: &str = "./input";
+//const FILENAME: &str = "./test";
 
 use core::cmp::Ordering;
 use std::{fmt, vec};
@@ -6,8 +8,6 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::collections::HashMap;
 
-//const FILENAME: &str = "./input";
-const FILENAME: &str = "./test";
 const NUM_MIN: i32 = 30;
 
 #[derive(Clone, Debug)]
@@ -100,6 +100,7 @@ impl Ord for Valve {
         }
     }
 }
+
 impl PartialOrd for Valve {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -151,6 +152,14 @@ enum Step<'v> {
     Move(&'v Valve),
     Open(&'v Valve)
 }
+impl <'v> Step<'v> {
+    fn get_valve(&self) -> &'v Valve {
+        match self {
+            Step::Move(v) => v,
+            Step::Open(v) => v
+        }
+    }
+}
 
 impl <'v> fmt::Display for Step<'v> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -170,6 +179,7 @@ struct Path<'v> {
     steps: Vec<Step<'v>>,
     open_valves: Vec<&'v Valve>,
     closed_valves: Vec<&'v Valve>,
+    valve_map: &'v HashMap<String, &'v Valve>,
     current_flow: i32,
     total_flow: i32,
     cur_valve: &'v Valve,
@@ -177,11 +187,16 @@ struct Path<'v> {
 }
 
 impl <'v> Path<'v> {
-    fn new(closed_valves: Vec<&'v Valve>, v: &'v Valve, rem_time: i32) -> Path<'v> {
+    fn new(
+            closed_valves: Vec<&'v Valve>,
+            v: &'v Valve,
+            valve_map: &'v HashMap<String, &'v Valve>,
+            rem_time: i32) -> Path<'v> {
         let mut p = Path {
             steps: Vec::new(),
             open_valves: Vec::new(),
             closed_valves,
+            valve_map,
             current_flow: 0,
             total_flow: 0,
             cur_valve: v,
@@ -232,7 +247,9 @@ impl <'v> Path<'v> {
         self.closed_valves.retain(|x| {
             !&x.name.contains(&v.name)});
         self.open_valves.push(v);
+
         self.current_flow += v.flow_rate;
+        self.total_flow += v.flow_rate * self.rem_time
     }
 
     fn open_cur_valve(&mut self) {
@@ -240,7 +257,7 @@ impl <'v> Path<'v> {
     }
 
     fn add_step(&mut self, s: Step<'v>) {
-        self.total_flow += self.current_flow;
+        self.rem_time -= 1;
         match s {
             Step::Open(v) => {
                 self.cur_valve = v;
@@ -249,11 +266,10 @@ impl <'v> Path<'v> {
             Step::Move(v) => self.cur_valve = v
         }
         self.steps.push(s);
-        self.rem_time -= 1;
     }
 
     fn final_score(&self) -> i32 {
-        self.total_flow + self.current_flow * self.rem_time
+        self.total_flow
     }
 
     // TODO: Devise tests for more accurate ideal score - we can use the
@@ -261,25 +277,20 @@ impl <'v> Path<'v> {
     //      ideal score is >= their eventual score
     fn ideal_score(&self) -> i32 {
         let mut rval = self.total_flow;
-        let mut flow = self.current_flow;
-        let mut can_open = match self.steps.last().unwrap() {
-            Step::Open(_) => false,
-            _ => true
+        let mut rem_time = match self.steps.last().unwrap() {
+            Step::Open(_) => self.rem_time - 2,
+            _ => self.rem_time - 1
         };
 
+
         let mut j = 0;
-        for _ in 0..self.rem_time {
-            rval += flow;
-            if can_open {
-                match self.closed_valves.get(j as usize) {
-                    Some(v) => flow += v.flow_rate,
-                    _ => ()
-                }
-                j += 1;
-                can_open = false;
-            } else {
-                can_open = true;
+        while rem_time > 0 {
+            match self.closed_valves.get(j as usize) {
+                Some(v) => rval += v.flow_rate * rem_time,
+                _ => break
             }
+            j += 1;
+            rem_time -= 2;
         }
         rval
     }
@@ -361,7 +372,8 @@ mod tests {
         let final_score = 1651;
         let first_step = valve_map.get("AA").unwrap();
 
-        let mut p = Path::new(closed_valves, &first_step, NUM_MIN);
+        let mut p = Path::new(
+            closed_valves, &first_step, &valve_map, NUM_MIN);
         p.add_step(Step::Move(valve_map.get("DD").unwrap()));
         assert!(p.ideal_score() >= final_score);
         p.open_cur_valve();
@@ -435,9 +447,8 @@ mod tests {
 }
 
 fn widen_path<'v>(p: Path<'v>,
-        mut visited_valves: Vec<&'v Valve>,
-        valve_map: &HashMap<String, &'v Valve>) ->
-            (Vec<Path<'v>>, Vec<&'v Valve>) {
+        mut visited_valves: Vec<&'v Valve>
+            ) -> (Vec<Path<'v>>, Vec<&'v Valve>) {
 
     let mut new_steps: Vec<Path<'v>> = Vec::new();
 
@@ -447,7 +458,7 @@ fn widen_path<'v>(p: Path<'v>,
         } else if p.rem_time < 1 {
             continue;
         }
-        let v = valve_map.get(v_name).unwrap();
+        let v = p.valve_map.get(v_name).unwrap();
         visited_valves.push(v);
         let mut new_path = p.clone();
         new_path.add_step(Step::Move(v));
@@ -458,10 +469,71 @@ fn widen_path<'v>(p: Path<'v>,
     (new_steps, visited_valves)
 }
 
-fn find_best_path<'v>(
-        p: Path<'v>,
-        valve_map: &HashMap<String, &'v Valve>) -> Path<'v> {
-    return _find_best_path(0, p.clone(), valve_map, p);
+fn find_best_path<'v>(p: Path<'v>) -> Path<'v> {
+    return _find_best_path(0, p.clone(), p);
+}
+
+struct NextPaths<'v> {
+    p: Path<'v>,
+    poss_paths: Vec<Vec<String>>,
+}
+
+impl <'v> NextPaths<'v> {
+    fn new(p: Path<'v>) -> NextPaths<'v> {
+        let mut poss_paths: Vec<Vec<String>> = Vec::new();
+
+        for str_path in p.cur_valve.paths.iter() {
+            if str_path.len() as i32 >= p.rem_time - 1 {
+                continue;
+            }
+
+            // TODO: validate that this actually filters out bad paths?
+            let to_open_name = str_path.last().unwrap();
+            if !p.closed_valves.iter().any( |v| {
+                    v.name.contains(to_open_name)}) {
+                continue;
+            }
+            
+            poss_paths.push(str_path.clone());
+        }
+
+        // sort ascending so that we can `pop()` the largest value off below
+        poss_paths.sort_by(|a, b| {
+            let v_a = p.valve_map.get(a.last().unwrap()).unwrap();
+            let v_b = p.valve_map.get(b.last().unwrap()).unwrap();
+            let a_val = (p.rem_time - a.len() as i32 - 1) * v_a.flow_rate;
+            let b_val = (p.rem_time - b.len() as i32 - 1) * v_b.flow_rate;
+            a_val.cmp(&b_val)
+        });
+
+        NextPaths{
+            p,
+            poss_paths}
+    }
+}
+
+impl <'v> Iterator for NextPaths<'v> {
+    type Item = Path<'v>;
+
+    fn next(&mut self) -> Option<Path<'v>> {
+        if !self.poss_paths.is_empty() {
+            let mut new_path = self.p.clone();
+            for valve_name in self.poss_paths.pop().unwrap().iter() {
+                new_path.add_step(
+                    Step::Move(self.p.valve_map.get(valve_name).unwrap()));
+            }
+            new_path.open_cur_valve();
+
+            Some(new_path)
+        } else {
+            None
+        }
+    }
+}
+
+fn open_next_valves_sorted<'v>(
+        p: Path<'v>) -> impl Iterator<Item = Path<'v>> {
+    NextPaths::new(p)
 }
 
 fn open_next_valves<'v>(
@@ -474,6 +546,11 @@ fn open_next_valves<'v>(
     let mut opened_paths: Vec<Path> = Vec::new();
 
     for str_path in p.cur_valve.paths.iter() {
+        if str_path.len() as i32 >= p.rem_time - 1 {
+            continue;
+        }
+
+        // TODO: validate that this actually filters out bad paths?
         let to_open_name = str_path.last().unwrap();
         if !p.closed_valves.iter().any( |v| {
                 v.name.contains(to_open_name)}) {
@@ -488,29 +565,6 @@ fn open_next_valves<'v>(
         new_path.open_cur_valve();
         opened_paths.push(new_path);
     }
-    /*
-    while !poss_paths.is_empty() {
-        let mut new_steps: Vec<Path> = Vec::new();
-        for p in poss_paths.into_iter() {
-            if p.ideal_score() < best_score {
-                continue;
-            }
-
-            if p.can_open() {
-                let mut new_path = p.clone();
-                new_path.open_cur_valve();
-
-                opened_paths.push(new_path);
-            }
-
-            let my_steps;
-            (my_steps, visited_valves) = widen_path(p, visited_valves, valve_map);
-            new_steps.extend(my_steps);
-        }
-
-        poss_paths = new_steps;
-    }
-     */
 
     opened_paths
 }
@@ -518,7 +572,6 @@ fn open_next_valves<'v>(
 fn _find_best_path<'v>(
         level: i32,
         p: Path<'v>,
-        valve_map: &HashMap<String, &'v Valve>,
         mut best_path: Path<'v>)
             -> Path<'v> {
     let mut poss_paths: Vec<Path> = Vec::new();
@@ -559,29 +612,37 @@ fn _find_best_path<'v>(
                 }
 
                 let my_steps;
-                (my_steps, visited_valves) = widen_path(p, visited_valves, valve_map);
+                (my_steps, visited_valves) = widen_path(p, visited_valves);
                 new_steps.extend(my_steps);
             }
 
             poss_paths = new_steps;
         }
-    } else {
-        opened_paths = open_next_valves(p, valve_map);
-    }
 
-    // sort to explore most promising branches first
-    opened_paths.sort_by(|a, b| {
-        b.ideal_score().cmp(&a.ideal_score())
-    });
-    for p in opened_paths {
-        if p.ideal_score() < best_path.final_score() {
-            break;
+        // sort to explore most promising branches first
+        opened_paths.sort_by(|a, b| {
+            b.final_score().cmp(&a.final_score())
+        });
+        for p in opened_paths {
+            if p.ideal_score() < best_path.final_score() {
+                break;
+            }
+            best_path = _find_best_path(
+                level + 1,
+                p,
+                best_path);
         }
-        best_path = _find_best_path(
-            level + 1,
-            p,
-            valve_map,
-            best_path);
+    } else {
+        for p in open_next_valves_sorted(p) {
+            if p.ideal_score() < best_path.final_score() {
+                break;
+            }
+            best_path = _find_best_path(
+                level + 1,
+                p,
+                best_path);
+
+        }
     }
 
     best_path
@@ -609,9 +670,10 @@ fn part_1(valves: Vec<Valve>) {
     }
     let first_step = valve_map.get("AA").unwrap();
 
-    let p = Path::new(closed_valves.clone(), &first_step, NUM_MIN);
+    let p = Path::new(
+        closed_valves.clone(), &first_step, &valve_map, NUM_MIN);
     
-    let best_path = find_best_path(p, &valve_map);
+    let best_path = find_best_path(p);
 
     println!("Best path of {} steps: {}",
         best_path.steps.len(),
@@ -632,11 +694,16 @@ struct DuplexPath<'v> {
 }
 
 impl <'v> DuplexPath<'v> {
-    fn new(closed_valves: Vec<&'v Valve>, v: &'v Valve, rem_time: i32) -> DuplexPath<'v> {
+    fn new(
+            closed_valves: Vec<&'v Valve>,
+            v: &'v Valve,
+            valve_map: &'v HashMap<String, &'v Valve>,
+            rem_time: i32) -> DuplexPath<'v> {
         let mut p = Path {
             steps: Vec::new(),
             open_valves: Vec::new(),
             closed_valves,
+            valve_map,
             current_flow: 0,
             total_flow: 0,
             cur_valve: v,
@@ -765,8 +832,7 @@ fn _find_best_path_duplex<'v>(
                     let my_paths;
                     (my_paths, my_visited) = widen_path(
                         p.my_path.clone(),
-                        my_visited,
-                        valve_map);
+                        my_visited);
                     
                     for p in my_paths {
                         new_steps.push(DuplexPath {
@@ -780,8 +846,7 @@ fn _find_best_path_duplex<'v>(
                     let elephant_paths;
                     (elephant_paths, elephant_visited) = widen_path(
                         p.elephant_path.clone(),
-                        elephant_visited,
-                        valve_map);
+                        elephant_visited);
                     
                     for p in elephant_paths {
                         new_steps.push(DuplexPath {
@@ -794,7 +859,11 @@ fn _find_best_path_duplex<'v>(
             poss_paths = new_steps;
         }
 
-    } else {
+    } else if false {
+        /*
+         * TODO: choose to expand short of the two paths first and use
+         * iterator to recurse _here_
+         */
         let elephant_paths = open_next_valves(
             in_path.elephant_path.clone(),
             valve_map);
@@ -818,21 +887,74 @@ fn _find_best_path_duplex<'v>(
             new_path.elephant_path.closed_valves = new_path.my_path.closed_valves.clone();
             opened_paths.push(new_path);
         }
-    }
 
-    // sort to explore most promising branches first
-    opened_paths.sort_by(|a, b| {
-        b.ideal_score().cmp(&a.ideal_score())
-    });
-    for d in opened_paths {
-        if d.ideal_score() < best_path.final_score() {
-            break;
+        // sort to explore most promising branches first
+        opened_paths.sort_by(|a, b| {
+            b.final_score().cmp(&a.final_score())
+        });
+        for d in opened_paths {
+            if d.ideal_score() < best_path.final_score() {
+                break;
+            }
+            best_path = _find_best_path_duplex(
+                level + 1,
+                d,
+                valve_map,
+                best_path);
         }
-        best_path = _find_best_path_duplex(
-            level + 1,
-            d,
-            valve_map,
-            best_path);
+    } else {
+        // get two sorted iterators and take turns
+        let mut my_paths_iter = open_next_valves_sorted(
+            in_path.my_path.clone());
+        let mut elephant_paths_iter = open_next_valves_sorted(
+            in_path.elephant_path.clone());
+
+        let mut my_paths_valid = true;
+        let mut ele_paths_valid = true;
+        while my_paths_valid && ele_paths_valid {
+            my_paths_valid = my_paths_valid && match my_paths_iter.next() {
+                Some(p) => {
+                    let mut new_path = DuplexPath {
+                        my_path: p,
+                        elephant_path: in_path.elephant_path.clone()
+                    };
+                    new_path.elephant_path.closed_valves = new_path.my_path.closed_valves.clone();
+                    if new_path.ideal_score() >= best_path.final_score() {
+                        best_path = _find_best_path_duplex(
+                            level + 1,
+                            new_path,
+                            valve_map,
+                            best_path);
+
+                        true
+                    } else {
+                        false
+                    }
+                },
+                None => false
+            };
+            ele_paths_valid = ele_paths_valid && match elephant_paths_iter.next() {
+                Some(p) => {
+                    let mut new_path = DuplexPath {
+                        my_path: in_path.my_path.clone(),
+                        elephant_path: p,
+                    };
+                    new_path.my_path.closed_valves = new_path.elephant_path.closed_valves.clone();
+                    if new_path.ideal_score() >= best_path.final_score() {
+                        best_path = _find_best_path_duplex(
+                            level + 1,
+                            new_path,
+                            valve_map,
+                            best_path);
+
+                        true
+                    } else {
+                        false
+                    }
+                },
+                None => false
+            };
+        }
     }
 
     best_path
@@ -873,6 +995,7 @@ fn part_2(valves: Vec<Valve>) {
     let p = DuplexPath::new(
         closed_valves.clone(),
         &first_step,
+        &valve_map,
         NUM_MIN - 4);
     
     let best_path = find_best_path_duplex(0, p, &valve_map);
