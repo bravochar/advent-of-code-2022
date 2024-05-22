@@ -1,5 +1,5 @@
-const FILENAME: &str = "./input";
-//const FILENAME: &str = "./test";
+//const FILENAME: &str = "./input";
+const FILENAME: &str = "./test";
 
 use core::cmp::Ordering;
 use std::{fmt, vec};
@@ -638,19 +638,17 @@ impl <'v> DuplexPath<'v> {
 
 fn find_best_path_duplex<'v>(
         level: i32,
-        in_path: DuplexPath<'v>,
-        valve_map: &HashMap<String, &'v Valve>)
-            -> DuplexPath<'v> {
+        in_path: DuplexPath<'v>
+            ) -> DuplexPath<'v> {
     let best_path = in_path.clone();
-    return _find_best_path_duplex(level, in_path, valve_map, best_path);
+    return _find_best_path_duplex(level, in_path, best_path);
 }
 
 fn _find_best_path_duplex<'v>(
         level: i32,
         in_path: DuplexPath<'v>,
-        valve_map: &HashMap<String, &'v Valve>,
-        mut best_path: DuplexPath<'v>)
-            -> DuplexPath<'v> {
+        mut best_path: DuplexPath<'v>
+            ) -> DuplexPath<'v> {
 
     if in_path.final_score() > best_path.final_score() {
         println!("{}: New best path: {} ({} valves left; {} time) (was {})",
@@ -682,7 +680,6 @@ fn _find_best_path_duplex<'v>(
                     best_path = _find_best_path_duplex(
                         level + 1,
                         new_path,
-                        valve_map,
                         best_path);
 
                     true
@@ -703,7 +700,6 @@ fn _find_best_path_duplex<'v>(
                     best_path = _find_best_path_duplex(
                         level + 1,
                         new_path,
-                        valve_map,
                         best_path);
 
                     true
@@ -741,7 +737,7 @@ fn part_2(valves: Vec<Valve>) {
         &first_step,
         &valve_map,
         NUM_MIN - 4);
-    let best_path = find_best_path_duplex(0, p, &valve_map);
+    let best_path = find_best_path_duplex(0, p);
 
     println!("Best path of {} steps: {}",
         best_path.steps(),
