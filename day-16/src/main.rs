@@ -153,6 +153,7 @@ enum Step<'v> {
     Open(&'v Valve)
 }
 impl <'v> Step<'v> {
+    #[allow(dead_code)]
     fn get_valve(&self) -> &'v Valve {
         match self {
             Step::Move(v) => v,
@@ -295,33 +296,12 @@ impl <'v> Path<'v> {
         rval
     }
 
-    fn next_steps(&self) -> Vec<String> {
-        let mut rval = Vec::new();
-        if self.rem_time <= 1 {
-            return rval;
-        }
-
-        let last_step = self.steps.last().unwrap();
-
-        let v = match last_step {
-            Step::Move(v) => {
-                v
-            }, 
-            Step::Open(v) => v
-        };
-
-        for t in v.tunnels.iter() {
-            rval.push(t.clone());
-        }
-
-        rval
-    }
-
     #[allow(dead_code)]
     fn path_len(&self) -> i32 {
         return self.steps.len() as i32 - 1
     }
 
+    #[allow(dead_code)]
     fn can_open(&self) -> bool {
         let v = self.cur_valve;
 
@@ -446,29 +426,6 @@ mod tests {
     }
 }
 
-fn widen_path<'v>(p: Path<'v>,
-        mut visited_valves: Vec<&'v Valve>
-            ) -> (Vec<Path<'v>>, Vec<&'v Valve>) {
-
-    let mut new_steps: Vec<Path<'v>> = Vec::new();
-
-    for v_name in p.next_steps().iter() {
-        if visited_valves.iter().any(|v| {v.name.eq(v_name)}) {
-            continue;
-        } else if p.rem_time < 1 {
-            continue;
-        }
-        let v = p.valve_map.get(v_name).unwrap();
-        visited_valves.push(v);
-        let mut new_path = p.clone();
-        new_path.add_step(Step::Move(v));
-
-        new_steps.push(new_path);
-    }
-
-    (new_steps, visited_valves)
-}
-
 fn find_best_path<'v>(p: Path<'v>) -> Path<'v> {
     return _find_best_path(0, p.clone(), p);
 }
@@ -536,46 +493,11 @@ fn open_next_valves_sorted<'v>(
     NextPaths::new(p)
 }
 
-fn open_next_valves<'v>(
-        p: Path<'v>,
-        valve_map: &HashMap<String, &'v Valve>,
-            ) -> Vec<Path<'v>> {
-    let mut poss_paths: Vec<Path> = Vec::new();
-
-    poss_paths.push(p.clone());
-    let mut opened_paths: Vec<Path> = Vec::new();
-
-    for str_path in p.cur_valve.paths.iter() {
-        if str_path.len() as i32 >= p.rem_time - 1 {
-            continue;
-        }
-
-        // TODO: validate that this actually filters out bad paths?
-        let to_open_name = str_path.last().unwrap();
-        if !p.closed_valves.iter().any( |v| {
-                v.name.contains(to_open_name)}) {
-            continue;
-        }
-        
-        let mut new_path = p.clone();
-        for valve_name in str_path.iter() {
-            new_path.add_step(
-                Step::Move(valve_map.get(valve_name).unwrap()));
-        }
-        new_path.open_cur_valve();
-        opened_paths.push(new_path);
-    }
-
-    opened_paths
-}
-
 fn _find_best_path<'v>(
         level: i32,
         p: Path<'v>,
         mut best_path: Path<'v>)
             -> Path<'v> {
-    let mut poss_paths: Vec<Path> = Vec::new();
-    let mut visited_valves: Vec<&Valve> = Vec::new();
 
     if p.final_score() > best_path.final_score() {
         /*
@@ -589,60 +511,15 @@ fn _find_best_path<'v>(
         best_path = p.clone();
     }
 
-    // no more recursing
-    if p.all_open() {
-        return best_path;
-    }
-
-    poss_paths.push(p.clone());
-    let mut opened_paths: Vec<Path> = Vec::new();
-    if false {
-        while !poss_paths.is_empty() {
-            let mut new_steps: Vec<Path> = Vec::new();
-            for p in poss_paths.into_iter() {
-                if p.ideal_score() < best_path.final_score() {
-                    continue;
-                }
-
-                if p.can_open() {
-                    let mut new_path = p.clone();
-                    new_path.open_cur_valve();
-
-                    opened_paths.push(new_path);
-                }
-
-                let my_steps;
-                (my_steps, visited_valves) = widen_path(p, visited_valves);
-                new_steps.extend(my_steps);
-            }
-
-            poss_paths = new_steps;
+    for p in open_next_valves_sorted(p) {
+        if p.ideal_score() < best_path.final_score() {
+            break;
         }
+        best_path = _find_best_path(
+            level + 1,
+            p,
+            best_path);
 
-        // sort to explore most promising branches first
-        opened_paths.sort_by(|a, b| {
-            b.final_score().cmp(&a.final_score())
-        });
-        for p in opened_paths {
-            if p.ideal_score() < best_path.final_score() {
-                break;
-            }
-            best_path = _find_best_path(
-                level + 1,
-                p,
-                best_path);
-        }
-    } else {
-        for p in open_next_valves_sorted(p) {
-            if p.ideal_score() < best_path.final_score() {
-                break;
-            }
-            best_path = _find_best_path(
-                level + 1,
-                p,
-                best_path);
-
-        }
     }
 
     best_path
@@ -757,16 +634,6 @@ impl <'v> DuplexPath<'v> {
     fn all_open(&self) -> bool {
         self.my_path.all_open() && self.elephant_path.all_open()
     }
-
-    fn open_my_path(&mut self) {
-        self.my_path.open_cur_valve();
-        self.elephant_path.closed_valves = self.my_path.closed_valves.clone();
-    }
-
-    fn open_elephant_path(&mut self) {
-        self.elephant_path.open_cur_valve();
-        self.my_path.closed_valves = self.elephant_path.closed_valves.clone();
-    }
 }
 
 fn find_best_path_duplex<'v>(
@@ -784,9 +651,6 @@ fn _find_best_path_duplex<'v>(
         valve_map: &HashMap<String, &'v Valve>,
         mut best_path: DuplexPath<'v>)
             -> DuplexPath<'v> {
-    let mut poss_paths: Vec<DuplexPath> = Vec::new();
-    let mut my_visited: Vec<&Valve> = Vec::new();
-    let mut elephant_visited: Vec<&Valve> = Vec::new();
 
     if in_path.final_score() > best_path.final_score() {
         println!("{}: New best path: {} ({} valves left; {} time) (was {})",
@@ -798,183 +662,63 @@ fn _find_best_path_duplex<'v>(
         best_path = in_path.clone();
     }
 
-    poss_paths.push(in_path.clone());
-    let mut opened_paths: Vec<DuplexPath> = Vec::new();
-    if false {
-        while !poss_paths.is_empty() {
-            let mut new_steps: Vec<DuplexPath> = Vec::new();
-            for p in poss_paths.into_iter() {
-                if p.ideal_score() < best_path.final_score() {
-                    continue
+    // get two sorted iterators and take turns
+    let mut my_paths_iter = open_next_valves_sorted(
+        in_path.my_path.clone());
+    let mut elephant_paths_iter = open_next_valves_sorted(
+        in_path.elephant_path.clone());
+
+    let mut my_paths_valid = true;
+    let mut ele_paths_valid = true;
+    while my_paths_valid && ele_paths_valid {
+        my_paths_valid = my_paths_valid && match my_paths_iter.next() {
+            Some(p) => {
+                let mut new_path = DuplexPath {
+                    my_path: p,
+                    elephant_path: in_path.elephant_path.clone()
+                };
+                new_path.elephant_path.closed_valves = new_path.my_path.closed_valves.clone();
+                if new_path.ideal_score() >= best_path.final_score() {
+                    best_path = _find_best_path_duplex(
+                        level + 1,
+                        new_path,
+                        valve_map,
+                        best_path);
+
+                    true
+                } else {
+                    false
                 }
+            },
+            None => false
+        };
+        ele_paths_valid = ele_paths_valid && match elephant_paths_iter.next() {
+            Some(p) => {
+                let mut new_path = DuplexPath {
+                    my_path: in_path.my_path.clone(),
+                    elephant_path: p,
+                };
+                new_path.my_path.closed_valves = new_path.elephant_path.closed_valves.clone();
+                if new_path.ideal_score() >= best_path.final_score() {
+                    best_path = _find_best_path_duplex(
+                        level + 1,
+                        new_path,
+                        valve_map,
+                        best_path);
 
-                if p.my_path.can_open() {
-                    let mut new_path = DuplexPath {
-                        my_path: p.my_path.clone(),
-                        elephant_path: in_path.elephant_path.clone()
-                    };
-                    new_path.open_my_path();
-
-                    opened_paths.push(new_path);
+                    true
+                } else {
+                    false
                 }
-
-                if p.elephant_path.can_open() {
-                    let mut new_path = DuplexPath {
-                        my_path: in_path.my_path.clone(),
-                        elephant_path: p.elephant_path.clone()
-                    };
-                    new_path.open_elephant_path();
-                    
-                    opened_paths.push(new_path);
-                }
-
-                if p.elephant_path.rem_time == in_path.elephant_path.rem_time {
-                    let my_paths;
-                    (my_paths, my_visited) = widen_path(
-                        p.my_path.clone(),
-                        my_visited);
-                    
-                    for p in my_paths {
-                        new_steps.push(DuplexPath {
-                            my_path: p,
-                            elephant_path: in_path.elephant_path.clone()
-                        });
-                    }
-                }
-
-                if p.my_path.rem_time == in_path.my_path.rem_time {
-                    let elephant_paths;
-                    (elephant_paths, elephant_visited) = widen_path(
-                        p.elephant_path.clone(),
-                        elephant_visited);
-                    
-                    for p in elephant_paths {
-                        new_steps.push(DuplexPath {
-                            my_path: in_path.my_path.clone(),
-                            elephant_path: p
-                        });
-                    }
-                }
-            }
-            poss_paths = new_steps;
-        }
-
-    } else if false {
-        /*
-         * TODO: choose to expand short of the two paths first and use
-         * iterator to recurse _here_
-         */
-        let elephant_paths = open_next_valves(
-            in_path.elephant_path.clone(),
-            valve_map);
-        for p in elephant_paths {
-            let mut new_path = DuplexPath {
-                my_path: in_path.my_path.clone(),
-                elephant_path: p
-            };
-            new_path.my_path.closed_valves = new_path.elephant_path.closed_valves.clone();
-            opened_paths.push(new_path);
-        }
-
-        let my_paths = open_next_valves(
-            in_path.my_path.clone(),
-            valve_map);
-        for p in my_paths {
-            let mut new_path = DuplexPath {
-                my_path: p,
-                elephant_path: in_path.elephant_path.clone()
-            };
-            new_path.elephant_path.closed_valves = new_path.my_path.closed_valves.clone();
-            opened_paths.push(new_path);
-        }
-
-        // sort to explore most promising branches first
-        opened_paths.sort_by(|a, b| {
-            b.final_score().cmp(&a.final_score())
-        });
-        for d in opened_paths {
-            if d.ideal_score() < best_path.final_score() {
-                break;
-            }
-            best_path = _find_best_path_duplex(
-                level + 1,
-                d,
-                valve_map,
-                best_path);
-        }
-    } else {
-        // get two sorted iterators and take turns
-        let mut my_paths_iter = open_next_valves_sorted(
-            in_path.my_path.clone());
-        let mut elephant_paths_iter = open_next_valves_sorted(
-            in_path.elephant_path.clone());
-
-        let mut my_paths_valid = true;
-        let mut ele_paths_valid = true;
-        while my_paths_valid && ele_paths_valid {
-            my_paths_valid = my_paths_valid && match my_paths_iter.next() {
-                Some(p) => {
-                    let mut new_path = DuplexPath {
-                        my_path: p,
-                        elephant_path: in_path.elephant_path.clone()
-                    };
-                    new_path.elephant_path.closed_valves = new_path.my_path.closed_valves.clone();
-                    if new_path.ideal_score() >= best_path.final_score() {
-                        best_path = _find_best_path_duplex(
-                            level + 1,
-                            new_path,
-                            valve_map,
-                            best_path);
-
-                        true
-                    } else {
-                        false
-                    }
-                },
-                None => false
-            };
-            ele_paths_valid = ele_paths_valid && match elephant_paths_iter.next() {
-                Some(p) => {
-                    let mut new_path = DuplexPath {
-                        my_path: in_path.my_path.clone(),
-                        elephant_path: p,
-                    };
-                    new_path.my_path.closed_valves = new_path.elephant_path.closed_valves.clone();
-                    if new_path.ideal_score() >= best_path.final_score() {
-                        best_path = _find_best_path_duplex(
-                            level + 1,
-                            new_path,
-                            valve_map,
-                            best_path);
-
-                        true
-                    } else {
-                        false
-                    }
-                },
-                None => false
-            };
-        }
+            },
+            None => false
+        };
     }
 
     best_path
 }
 
 fn part_2(valves: Vec<Valve>) {
-    /*
-     * same as above, but with a 26 minute limit, and two actors.
-     * 
-     * We can make our possible solutions a tuple of two paths. Take turns
-     * permuting each element of the tuple, synchronizing the closed valves
-     * between the two paths. The score is then a combination of the individual
-     * scores, and the ideal score should be calculated at a higher level?
-     * 
-     * Maybe use a struct to hold the two paths and re-implement the scoring
-     * methods there, i.e. the ideal score starts with the smaller of the two
-     * paths until the two catch up. And we should permute the smaller of the 
-     * two paths at each turn, not necessarily alternate?
-     */
-
     // hashmap to find next move
     let mut valve_map = HashMap::new();
     let mut closed_valves = Vec::new();
@@ -997,59 +741,15 @@ fn part_2(valves: Vec<Valve>) {
         &first_step,
         &valve_map,
         NUM_MIN - 4);
-    
     let best_path = find_best_path_duplex(0, p, &valve_map);
-    /*
-    let mut high_score = 0;
-    let mut paths = vec![p];
-    while !paths.is_empty() {
-        let mut next_paths: Vec<DuplexPath> = Vec::new();
-        for path in paths.into_iter() {
-            if path.ideal_score() <= high_score {
-                continue;
-
-            } else if path.final_score() > high_score {
-                high_score = path.final_score();
-                best_path = path.clone();
-            }
-
-            let new_paths = permute_duplex_path(path, &valve_map);
-
-            if !new_paths.is_empty() {
-                next_paths.extend(new_paths);
-            }
-        }
-
-        paths = Vec::new();
-        for path in next_paths.into_iter() {
-            // check for new high score
-            if path.final_score() > high_score {
-                high_score = path.final_score();
-                best_path = path.clone();
-            }
-
-            // check pruning conditions
-            if path.ideal_score() < high_score {
-                continue;
-            } else if path.all_open() {
-                continue;
-            } else {
-                paths.push(path);
-            }
-        }
-        if !paths.is_empty() {
-            println!("Working with {} paths; best {}", paths.len(), high_score);
-        } else {
-            println!("Done!");
-        }
-    }
-     */
 
     println!("Best path of {} steps: {}",
         best_path.steps(),
         best_path.final_score());
     if FILENAME.eq("./test") {
         assert_eq!(best_path.final_score(), 1707);
+    } else {
+        assert_eq!(best_path.final_score(), 2343);
     }
     
 }
