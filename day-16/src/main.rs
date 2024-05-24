@@ -1,9 +1,10 @@
-//const FILENAME: &str = "./input";
-const FILENAME: &str = "./test";
+const FILENAME: &str = "./input";
+//const FILENAME: &str = "./test";
 
 use core::cmp::Ordering;
 use std::{fmt, vec};
 use std::cmp::max;
+use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::collections::HashMap;
@@ -86,6 +87,11 @@ impl Valve {
             }
             vec_steps = new_steps;
         }
+        
+        // sort paths by length
+        self.paths.sort_by( |a, b| {
+            a.len().cmp(&b.len())
+        });
     }
 }
 
@@ -430,18 +436,59 @@ fn find_best_path<'v>(p: Path<'v>) -> Path<'v> {
     return _find_best_path(0, p.clone(), p);
 }
 
+// need struct to hold paths
+#[derive(PartialEq, Eq)]
+struct WeightedPath<'v> {
+    path:   &'v Vec<String>,
+    weight: i32
+}
+
+impl <'v> WeightedPath<'v> {
+    fn new(p: &Path, path: &'v Vec<String>) -> Self {
+        let v = p.valve_map.get(path.last().unwrap()).unwrap();
+        let weight = (p.rem_time - path.len() as i32 - 1) * v.flow_rate;
+
+        WeightedPath {
+            path,
+            weight
+        }
+    }
+}
+
+impl <'v> Ord for WeightedPath<'v> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.weight.cmp(&other.weight)
+    }
+}
+
+impl <'v> PartialOrd for WeightedPath<'v> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/*
+ * XXX: impl New, Ord, and Partial Ord for above to be used in Binary Heap
+ */
+
 struct NextPaths<'v> {
     p: Path<'v>,
-    poss_paths: Vec<Vec<String>>,
+
+    /*
+     * XXX: This should be a BinaryHeap to save time
+     */
+    poss_paths: BinaryHeap<WeightedPath<'v>>,
 }
 
 impl <'v> NextPaths<'v> {
     fn new(p: Path<'v>) -> NextPaths<'v> {
-        let mut poss_paths: Vec<Vec<String>> = Vec::new();
+        let mut poss_paths = BinaryHeap::new();
 
         for str_path in p.cur_valve.paths.iter() {
             if str_path.len() as i32 >= p.rem_time - 1 {
-                continue;
+                // paths are sorted by length, so once one is too long,
+                // the rest are, too
+                break;
             }
 
             // TODO: validate that this actually filters out bad paths?
@@ -451,17 +498,8 @@ impl <'v> NextPaths<'v> {
                 continue;
             }
             
-            poss_paths.push(str_path.clone());
+            poss_paths.push(WeightedPath::new(&p, &str_path));
         }
-
-        // sort ascending so that we can `pop()` the largest value off below
-        poss_paths.sort_by(|a, b| {
-            let v_a = p.valve_map.get(a.last().unwrap()).unwrap();
-            let v_b = p.valve_map.get(b.last().unwrap()).unwrap();
-            let a_val = (p.rem_time - a.len() as i32 - 1) * v_a.flow_rate;
-            let b_val = (p.rem_time - b.len() as i32 - 1) * v_b.flow_rate;
-            a_val.cmp(&b_val)
-        });
 
         NextPaths{
             p,
@@ -474,8 +512,12 @@ impl <'v> Iterator for NextPaths<'v> {
 
     fn next(&mut self) -> Option<Path<'v>> {
         if !self.poss_paths.is_empty() {
+            /*
+             * XXX: We should only yield the string vector and wait
+             *      to clone the path until we need it
+             */
             let mut new_path = self.p.clone();
-            for valve_name in self.poss_paths.pop().unwrap().iter() {
+            for valve_name in self.poss_paths.pop().unwrap().path.iter() {
                 new_path.add_step(
                     Step::Move(self.p.valve_map.get(valve_name).unwrap()));
             }
