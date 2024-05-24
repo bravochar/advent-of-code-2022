@@ -4,9 +4,9 @@ const FILENAME: &str = "./input";
 use core::cmp::Ordering;
 use std::{fmt, vec};
 use std::cmp::max;
-use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
 const NUM_MIN: i32 = 30;
@@ -52,7 +52,7 @@ impl Valve {
         // first steps: immediate neighbors
         for t in self.tunnels.iter() {
             let v: &Valve = valves.iter().find(|x| {
-                x.name.contains(t)
+                x.name == * t
             }).unwrap();
             vec_steps.push(vec![v.name.clone()]);
         }
@@ -62,7 +62,7 @@ impl Valve {
             for cur_steps in vec_steps {
                 let cur_valve = cur_steps.last().unwrap();
                 let cur_valve: &Valve = valves.iter().find(|x| {
-                    x.name.contains(cur_valve)
+                    x.name == *cur_valve
                 }).unwrap();
 
                 // check for open
@@ -73,7 +73,7 @@ impl Valve {
                 // add new_steps
                 for t in cur_valve.tunnels.iter() {
                     let next_valve = valves.iter().find(|x| {
-                        x.name.contains(t)
+                        x.name == *t
                     }).unwrap();
 
                     if visited_valves.contains(&&next_valve.name) {
@@ -252,7 +252,7 @@ impl <'v> Path<'v> {
     fn open_valve(&mut self) {
         let v = self.cur_valve;
         self.closed_valves.retain(|x| {
-            !&x.name.contains(&v.name)});
+            &x.name != &v.name});
         self.open_valves.push(v);
 
         self.current_flow += v.flow_rate;
@@ -317,7 +317,7 @@ impl <'v> Path<'v> {
         }
 
         for c_v in self.closed_valves.iter() {
-            if c_v.name.contains(&v.name) {
+            if c_v.name == v.name {
                 return true;
             }
         }
@@ -491,14 +491,12 @@ impl <'v> NextPaths<'v> {
                 break;
             }
 
-            // TODO: validate that this actually filters out bad paths?
             let to_open_name = str_path.last().unwrap();
-            if !p.closed_valves.iter().any( |v| {
-                    v.name.contains(to_open_name)}) {
-                continue;
+            if p.closed_valves.iter().any( |v| {
+                    v.name == *to_open_name}) {
+                poss_paths.push(WeightedPath::new(&p, &str_path));
             }
             
-            poss_paths.push(WeightedPath::new(&p, &str_path));
         }
 
         NextPaths{
