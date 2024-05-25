@@ -8,58 +8,88 @@ enum Throw {
     Scissors,
 }
 
-fn str_to_throw(s: &str) -> Throw {
-    match s {
-        "A" => Throw::Rock,
-        "X" => Throw::Rock,
-        "B" => Throw::Paper,
-        "Y" => Throw::Paper,
-        "C" => Throw::Scissors,
-        "Z" => Throw::Scissors,
-        &_ => Throw::Rock,
+impl Throw {
+    fn from_str(s: &str) -> Throw {
+        match s {
+            "A" => Throw::Rock,
+            "X" => Throw::Rock,
+            "B" => Throw::Paper,
+            "Y" => Throw::Paper,
+            "C" => Throw::Scissors,
+            "Z" => Throw::Scissors,
+            &_ => Throw::Rock,
+        }
+    }
+
+    fn from_result(opp_throw: &Throw, result: &str) -> Throw {
+        match result {
+            "X" => { // need to lose
+                match opp_throw {
+                    Throw::Rock => Throw::Scissors,
+                    Throw::Paper => Throw::Rock,
+                    Throw::Scissors => Throw::Paper,
+                }
+            },
+            "Y" => { // need to draw
+                match opp_throw {
+                    Throw::Rock => Throw::Rock,
+                    Throw::Paper => Throw::Paper,
+                    Throw::Scissors => Throw::Scissors,
+                }
+            },
+            "Z" => { // need to win
+                match opp_throw {
+                    Throw::Rock => Throw::Paper,
+                    Throw::Paper => Throw::Scissors,
+                    Throw::Scissors => Throw::Rock,
+                }
+            },
+            &_ => Throw::Rock,
+        }
+    }
+
+    fn to_points(&self) -> i32 {
+        match self {
+            Throw::Rock => 1,
+            Throw::Paper => 2,
+            Throw::Scissors => 3,
+        }
+    }
+
+    fn match_points(&self, opp_throw: &Throw) -> i32 {
+        match self {
+            Throw::Rock => {
+                match opp_throw {
+                    Throw::Rock => 3,
+                    Throw::Paper => 0,
+                    Throw::Scissors => 6,
+                }
+            },
+            Throw::Paper => {
+                match opp_throw {
+                    Throw::Rock => 6,
+                    Throw::Paper => 3,
+                    Throw::Scissors => 0,
+                }
+            },
+            Throw::Scissors => {
+                match opp_throw {
+                    Throw::Rock => 0,
+                    Throw::Paper => 6,
+                    Throw::Scissors => 3,
+                }
+            },
+        }
     }
 }
 
-fn throw_to_points(our_throw: &Throw) -> i32 {
-    match our_throw {
-        Throw::Rock => 1,
-        Throw::Paper => 2,
-        Throw::Scissors => 3,
-    }
-}
-
-fn outcome_to_points(our_throw: &Throw, opp_throw: &Throw) -> i32 {
-    match our_throw {
-        Throw::Rock => {
-            match opp_throw {
-                Throw::Rock => 3,
-                Throw::Paper => 0,
-                Throw::Scissors => 6,
-            }
-        },
-        Throw::Paper => {
-            match opp_throw {
-                Throw::Rock => 6,
-                Throw::Paper => 3,
-                Throw::Scissors => 0,
-            }
-        },
-        Throw::Scissors => {
-            match opp_throw {
-                Throw::Rock => 0,
-                Throw::Paper => 6,
-                Throw::Scissors => 3,
-            }
-        },
-    }
-}
 
 fn part_1() {
     // Open the file
     let file = File::open("./input").unwrap();
     let reader = BufReader::new(file);
 
-    let mut cum_score = 0;
+    let mut tot_score = 0;
 
     // Read file line by line
     for line in reader.lines() {
@@ -70,44 +100,17 @@ fn part_1() {
             continue;
         }
 
-        let opp_throw = str_to_throw(parts[0]);
-        let our_throw = str_to_throw(parts[1]);
+        let opp_throw = Throw::from_str(parts[0]);
+        let our_throw = Throw::from_str(parts[1]);
 
-        let mut score = throw_to_points(&our_throw);
-        score += outcome_to_points(&our_throw, &opp_throw);
+        let mut score = our_throw.to_points();
+        score += our_throw.match_points(&opp_throw);
 
-        cum_score += score;
+        tot_score += score;
     }
 
     // Print the answer to the first part
-    println!("Final score: {}", cum_score);
-}
-
-fn throw_from_result(opp_throw: &Throw, result: &str) -> Throw {
-    match result {
-        "X" => { // need to lose
-            match opp_throw {
-                Throw::Rock => Throw::Scissors,
-                Throw::Paper => Throw::Rock,
-                Throw::Scissors => Throw::Paper,
-            }
-        },
-        "Y" => { // need to draw
-            match opp_throw {
-                Throw::Rock => Throw::Rock,
-                Throw::Paper => Throw::Paper,
-                Throw::Scissors => Throw::Scissors,
-            }
-        },
-        "Z" => { // need to win
-            match opp_throw {
-                Throw::Rock => Throw::Paper,
-                Throw::Paper => Throw::Scissors,
-                Throw::Scissors => Throw::Rock,
-            }
-        },
-        &_ => Throw::Rock,
-    }
+    println!("Final score: {}", tot_score);
 }
 
 fn part_2() {
@@ -115,7 +118,7 @@ fn part_2() {
     let file = File::open("./input").unwrap();
     let reader = BufReader::new(file);
 
-    let mut cum_score = 0;
+    let mut tot_score = 0;
 
     // Read file line by line
     for line in reader.lines() {
@@ -126,17 +129,17 @@ fn part_2() {
             continue;
         }
 
-        let opp_throw = str_to_throw(parts[0]);
-        let our_throw = throw_from_result(&opp_throw, parts[1]);
+        let opp_throw = Throw::from_str(parts[0]);
+        let our_throw = Throw::from_result(&opp_throw, parts[1]);
 
-        let mut score = throw_to_points(&our_throw);
-        score += outcome_to_points(&our_throw, &opp_throw);
+        let mut score = our_throw.to_points();
+        score += our_throw.match_points(&opp_throw);
 
-        cum_score += score;
+        tot_score += score;
     }
 
     // Print the answer to the first part
-    println!("Final score: {}", cum_score);
+    println!("Final score: {}", tot_score);
 }
 
 fn main() {
