@@ -1,7 +1,6 @@
 const FILENAME: &str = "./input";
 //const FILENAME: &str = "./test";
 
-use std::hash::Hash;
 use std::{fmt, vec};
 use std::fs::read_to_string;
 use std::collections::HashMap;
@@ -486,8 +485,6 @@ struct Shaft {
     shape: Option<Shape>,
     next_shape: i64,
     shape_count: i64,
-    left_closure: i64,
-    right_closure: i64,
     cycle_detector: [HashMap<i32, i64>; 5],
     cycle_start: i64,
     cycle_len: i64,
@@ -504,8 +501,6 @@ impl Shaft {
             shape: None,
             next_shape: 0,
             shape_count: 0,
-            left_closure: 0,
-            right_closure: 0,
             cycle_detector: [
                 HashMap::new(),
                 HashMap::new(),
@@ -688,16 +683,6 @@ impl Shaft {
         }
     }
 
-    fn prune_dead_rows(&mut self) {
-        let new_floor = if self.left_closure < self.right_closure {
-            self.left_closure
-        } else {
-            self.right_closure
-        };
-        
-        self.rows.retain( |k, _| { k >= &new_floor });
-    }
-
     fn petrify_shape(&mut self) {
         let s = self.shape.as_mut().unwrap();
 
@@ -714,12 +699,6 @@ impl Shaft {
             };
             for offset in shape_points.into_iter() {
                 row.push(s.x + offset);
-            }
-            if row.contains(&0) {
-                self.left_closure = y.to_owned();
-
-            } else if row.contains(&(SHAFT_WIDTH - 1)) {
-                self.right_closure = y.to_owned();
             }
             self.rows.insert(y.clone(), row);
         }
@@ -865,7 +844,6 @@ fn part_2(jets: JetStream) -> i64 {
 
     let mut shaft = Shaft::new(jets);
 
-    let mut prev_high = 0;
     while shaft.cycle_len == 0  {
             shaft.add_next_shape();
             shaft.drop_shape();
@@ -883,26 +861,16 @@ fn part_2(jets: JetStream) -> i64 {
 
     // build LUT for height added during cycle
     let mut added_heights = Vec::new();
-    prev_high = shaft.high_point;
+    let prev_high = shaft.high_point;
     for _ in 0..shaft.cycle_len {
         shaft.add_next_shape();
         shaft.drop_shape();
         added_heights.push(shaft.high_point - prev_high);
     }
     let cycle_height = shaft.high_point - prev_high;
+
+    // calculate the final height
     let rval = shaft.high_point - cycle_height * 2;
-
-    // the total height aft
-    let mut added_heights_2 = Vec::new();
-    prev_high = shaft.high_point;
-    for _ in 0..shaft.cycle_len {
-        shaft.add_next_shape();
-        shaft.drop_shape();
-        added_heights_2.push(shaft.high_point - prev_high);
-    }
-
-    assert_eq!(added_heights[..10], added_heights_2[..10]);
-
     let shapes_to_go = limit - shapes_to_start;
     let num_cycles = shapes_to_go / shaft.cycle_len;
     let rval = rval + num_cycles * cycle_height;
@@ -916,7 +884,6 @@ fn main() {
 
     // read in the input
     let jets = JetStream::new(FILENAME);
-
 
     let now = Instant::now();
     use std::time::Instant;
@@ -932,8 +899,8 @@ fn main() {
     let now = Instant::now();
     let answer = part_2(jets.clone());
     let elapsed = now.elapsed();
-    println!("Took {:.5?}", elapsed);
     println!("Part 2: {}", answer);
+    println!("Took {:.5?}", elapsed);
 
     if FILENAME == "./test" {
         assert_eq!(answer, 1514285714288);
