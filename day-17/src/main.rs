@@ -73,23 +73,181 @@ mod tests {
         let mut shaft = get_test_shaft();
 
         shaft.add_next_shape();
-        shaft.drop_shape();
+
+        shaft.jet_turn();
         let shaft_str = format!("{}", shaft);
-        let test_str = "|..####.|\n\
-                              +-------+\n";
+        let test_str = "\
+        |...@@@@|\n\
+        |.......|\n\
+        |.......|\n\
+        |.......|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.gravity_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@@@@|\n\
+        |.......|\n\
+        |.......|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@@@@|\n\
+        |.......|\n\
+        |.......|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.gravity_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@@@@|\n\
+        |.......|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@@@@|\n\
+        |.......|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.gravity_turn();
+
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@@@@|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |..@@@@.|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.gravity_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |..####.|\n\
+        +-------+\n";
         println!("{}", shaft_str);
         println!("{}", test_str);
         assert_eq!(shaft_str, test_str);
+
+        assert_eq!(shaft.high_point, 0);
+        assert_eq!(shaft.high_point, 0);
     }
     
     #[test]
     fn test_second_shape() {
         let mut shaft = get_test_shaft();
 
-        for _ in 0..2 {
-            shaft.add_next_shape();
-            shaft.drop_shape();
-        }
+        shaft.add_next_shape();
+        shaft.drop_shape();
+        shaft.add_next_shape();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@...|\n\
+        |..@@@..|\n\
+        |...@...|\n\
+        |.......|\n\
+        |.......|\n\
+        |.......|\n\
+        |..####.|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |..@....|\n\
+        |.@@@...|\n\
+        |..@....|\n\
+        |.......|\n\
+        |.......|\n\
+        |.......|\n\
+        |..####.|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+
+        shaft.gravity_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |..@....|\n\
+        |.@@@...|\n\
+        |..@....|\n\
+        |.......|\n\
+        |.......|\n\
+        |..####.|\n\
+        +-------+\n";
+        println!("{}", shaft_str);
+        println!("{}", test_str);
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@...|\n\
+        |..@@@..|\n\
+        |...@...|\n\
+        |.......|\n\
+        |.......|\n\
+        |..####.|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+        shaft.gravity_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@...|\n\
+        |..@@@..|\n\
+        |...@...|\n\
+        |.......|\n\
+        |..####.|\n\
+        +-------+\n";
+        println!("{}", shaft_str);
+        println!("{}", test_str);
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |..@....|\n\
+        |.@@@...|\n\
+        |..@....|\n\
+        |.......|\n\
+        |..####.|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+        shaft.gravity_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |..@....|\n\
+        |.@@@...|\n\
+        |..@....|\n\
+        |..####.|\n\
+        +-------+\n";
+        println!("{}", shaft_str);
+        println!("{}", test_str);
+        assert_eq!(shaft_str, test_str);
+
+        shaft.jet_turn();
+        let shaft_str = format!("{}", shaft);
+        let test_str = "\
+        |...@...|\n\
+        |..@@@..|\n\
+        |...@...|\n\
+        |..####.|\n\
+        +-------+\n";
+        assert_eq!(shaft_str, test_str);
+        shaft.gravity_turn();
         let shaft_str = format!("{}", shaft);
         let test_str = "\
         |...#...|\n\
@@ -100,6 +258,8 @@ mod tests {
         println!("{}", shaft_str);
         println!("{}", test_str);
         assert_eq!(shaft_str, test_str);
+
+        assert_eq!(shaft.high_point, 3);
     }
     
     #[test]
@@ -122,6 +282,7 @@ mod tests {
         println!("{}", shaft_str);
         println!("{}", test_str);
         assert_eq!(shaft_str, test_str);
+        assert_eq!(shaft.high_point, 5);
     }
 
     #[test]
@@ -155,6 +316,7 @@ mod tests {
         println!("{}", shaft_str);
         println!("{}", test_str);
         assert_eq!(shaft_str, test_str);
+        assert_eq!(shaft.high_point, 16);
     }
 
     #[test]
@@ -188,12 +350,16 @@ mod tests {
         println!("{}", shaft_str);
         println!("{}", test_str);
         assert_eq!(shaft_str, test_str);
+        assert_eq!(shaft.high_point, 16);
     }
 }
 
 #[derive(Debug)]
 struct Shape {
-    rows: HashMap<i64, Vec<i64>>,
+    x: i32,
+    width: i32,
+    y: i64,
+    rows: Vec<Vec<i32>>,
 }
 
 impl Shape {
@@ -202,15 +368,25 @@ impl Shape {
      * wall and its bottom edge is three units above the highest rock in the 
      * room (or the floor, if there isn't one).
      */
+    fn new(high_point: i64, rows: Vec<Vec<i32>>) -> Shape {
+        Shape {
+            x: 2,
+            width: rows.iter().map(|r|{
+                r.len()
+            }).max().unwrap() as i32,
+            y: high_point + 3 + 1,
+            rows
+        }
+    }
+
     fn horizontal_line(high_point: i64) -> Shape {
         /*
          * ####
          */
-        let base_y = high_point + 4;
-        let mut rows = HashMap::new();
-        rows.insert(base_y, vec![2, 3, 4, 5]);
+        let mut rows = Vec::new();
+        rows.push( vec![0, 1, 2, 3]);
 
-        Shape{rows}
+        Shape::new(high_point, rows)
     }
 
     fn cross(high_point: i64) -> Shape {
@@ -219,13 +395,12 @@ impl Shape {
          * ###
          * .#.
          */
-        let base_y = high_point + 4;
-        let mut rows = HashMap::new();
-        rows.insert(base_y, vec![3]);
-        rows.insert(base_y + 1, vec![2, 3, 4]);
-        rows.insert(base_y + 2, vec![3]);
+        let mut rows = Vec::new();
+        rows.push(vec![   1]);
+        rows.push(vec![0, 1, 2]);
+        rows.push(vec![   1]);
 
-        Shape{rows}
+        Shape::new(high_point, rows)
     }
 
     fn ell(high_point: i64) -> Shape {
@@ -234,49 +409,46 @@ impl Shape {
          * ..#
          * ###
          */
-        let base_y = high_point + 4;
-        let mut rows = HashMap::new();
-        rows.insert(base_y, vec![2, 3, 4]);
-        rows.insert(base_y + 1, vec![4]);
-        rows.insert(base_y + 2, vec![4]);
+        let mut rows = Vec::new();
+        rows.push(vec![0, 1, 2]);
+        rows.push(vec![      2]);
+        rows.push(vec![      2]);
 
-        Shape{rows}
+        Shape::new(high_point, rows)
     }
 
     fn vertical_line(high_point: i64) -> Shape {
         /*
          * ####
          */
-        let base_y = high_point + 4;
-        let mut rows = HashMap::new();
-        rows.insert(base_y, vec![2]);
-        rows.insert(base_y + 1, vec![2]);
-        rows.insert(base_y + 2, vec![2]);
-        rows.insert(base_y + 3, vec![2]);
+        let mut rows = Vec::new();
+        rows.push(vec![0]);
+        rows.push(vec![0]);
+        rows.push(vec![0]);
+        rows.push(vec![0]);
 
-        Shape{rows}
+        Shape::new(high_point, rows)
     }
 
     fn square(high_point: i64) -> Shape {
         /*
          * ####
          */
-        let base_y = high_point + 4;
-        let mut rows = HashMap::new();
-        rows.insert(base_y, vec![2, 3]);
-        rows.insert(base_y + 1, vec![2, 3]);
+        let mut rows = Vec::new();
+        rows.push(vec![0, 1]);
+        rows.push(vec![0, 1]);
 
-        Shape{rows}
+        Shape::new(high_point, rows)
     }
 
     fn high_point(&self) -> i64 {
-        self.rows.keys().max().unwrap().to_owned()
+        self.y + self.rows.len() as i64 - 1
     }
 }
 
 struct Shaft {
     jets: JetStream,
-    rows: HashMap<i64, Vec<i64>>,
+    rows: HashMap<i64, Vec<i32>>,
     high_point: i64,
     shape: Option<Shape>,
     next_shape: i64,
@@ -285,7 +457,7 @@ struct Shaft {
     right_closure: i64,
 }
 
-const SHAFT_WIDTH: i64 = 7;
+const SHAFT_WIDTH: i32 = 7;
 impl Shaft {
     fn new(jets: JetStream) -> Self {
         let rows = HashMap::new();
@@ -333,89 +505,66 @@ impl Shaft {
     fn move_right(&mut self) {
         let s = self.shape.as_mut().unwrap();
 
-        /*
-         * ensure that all points can move right without:
-         *  1) moving beyond the wall at SHAFT_WIDTH
-         *  2) colliding with existing rock
-         * 
-         *  TODO: we only need to check for free space to the RIGHT of the 
-         *      right-most point in each row, and then "move" the left-most
-         *      point into that free space
-         */
-        let mut new_rows = HashMap::new();
-        for (y, shape_points) in s.rows.iter() {
-            // get min and max value
-            let mut new_row = shape_points.clone();
-            if true {
-                let min_x = shape_points.iter().min().unwrap();
-                let max_x = shape_points.iter().max().unwrap();
-                let new_x = max_x + 1;
-                if new_x >= SHAFT_WIDTH {
-                    return;
-                }
-                match self.rows.get(y) {
-                    Some(r) => {
-                        if r.contains(&(max_x + 1)) {
-                            return;
-                        }
-                    },
-                    _ => ()
-                }
-                new_row.retain(|x| { x != min_x});
-                new_row.push(max_x + 1);
-            } else {
-                new_row = shape_points.iter().map(|x| {x+1}).collect();
-                let new_max = new_row.iter().max().unwrap();
-                if new_max >= &SHAFT_WIDTH {
-                    return;
-                }
-                match self.rows.get(y) {
-                    Some(r) => {
-                        if r.contains(&new_max) {
-                            return;
-                        }
-                    },
-                    _ => ()
-                }
-            }
-            new_rows.insert(y.to_owned(), new_row);
+        let new_offset = s.x + 1;
+        if new_offset + s.width > SHAFT_WIDTH {
+            /*
+            println!("Collision with wall: right");
+            println!("{}", self);
+             */
+            return;
         }
-        s.rows = new_rows;
+        for (i, shape_points) in s.rows.iter().enumerate() {
+            // check against rock formation in shaft
+            let y = s.y + i as i64;
+            match self.rows.get(&y) {
+                Some(r) => {
+                    if shape_points.iter().any(|x| {
+                        r.contains(&(x + new_offset))
+                    }) {
+                        /*
+                        println!("Collision with shape: right");
+                        println!("{}", self);
+                         */
+                        return;}
+                },
+                _ => ()
+            }
+        }
+
+        s.x = new_offset;
     }
 
     fn move_left(&mut self) {
         let s = self.shape.as_mut().unwrap();
 
-        /*
-         * ensure that all points can move right without:
-         *  1) moving beyond the wall at SHAFT_WIDTH
-         *  2) colliding with existing rock
-         * 
-         *  TODO: we only need to check for free space to the LEFT of the 
-         *      left-most point in each row, and then "move" the right-most
-         *      point into that free space
-         */
-        let mut new_rows = HashMap::new();
-        for (y, shape_points) in s.rows.iter() {
-            let mut new_row = Vec::new();
-            for x in shape_points.iter() {
-                let new_x = x - 1;
-                if new_x < 0 {
-                    return;
-                }
-                match self.rows.get(y) {
-                    Some(rock_points) => {
-                        if rock_points.contains(&new_x) {
-                            return;
-                        }
-                    },
-                    _ => ()
-                }
-                new_row.push(new_x);
-            };
-            new_rows.insert(y.to_owned(), new_row);
+        let new_offset = s.x - 1;
+        if new_offset < 0 {
+            /*
+            println!("Collision with wall: left");
+            println!("{}", self);
+             */
+            return;
         }
-        s.rows = new_rows;
+        for (i, shape_points) in s.rows.iter().enumerate() {
+            // check against rock formation in shaft
+            let y = s.y + i as i64;
+            match self.rows.get(&y) {
+                Some(r) => {
+                    if shape_points.iter().any(|x| {
+                        r.contains(&(x + new_offset))
+                    }) {
+                        /*
+                        println!("Collision with shape: left");
+                        println!("{}", self);
+                         */
+                        return;
+                    }
+                },
+                _ => ()
+            }
+        }
+
+        s.x -= 1;
     }
 
     fn jet_turn(&mut self) {
@@ -442,29 +591,26 @@ impl Shaft {
 
     fn petrify_shape(&mut self) {
         let s = self.shape.as_mut().unwrap();
-        let mut new_floor = false;
 
         // update high point
-        let shape_high_point = s.rows.keys().max().unwrap().to_owned();
-        if shape_high_point > self.high_point {
-            self.high_point = shape_high_point;
+        if s.high_point() > self.high_point {
+            self.high_point = s.high_point();
         }
 
-        for (y, shape_points) in s.rows.iter() {
-            let mut row = match self.rows.remove(y) {
+        for (i, shape_points) in s.rows.iter().enumerate() {
+            let y = i as i64 + s.y;
+            let mut row = match self.rows.remove(&y) {
                 Some(r) => r,
                 None => Vec::new()
             };
-            for x in shape_points.into_iter() {
-                row.push(x.clone());
+            for offset in shape_points.into_iter() {
+                row.push(s.x + offset);
             }
             if row.contains(&0) {
                 self.left_closure = y.to_owned();
-                new_floor = true;
 
             } else if row.contains(&(SHAFT_WIDTH - 1)) {
                 self.right_closure = y.to_owned();
-                new_floor = true;
             }
             self.rows.insert(y.clone(), row);
         }
@@ -486,30 +632,30 @@ impl Shaft {
          *  1) moving beyond the wall at SHAFT_WIDTH
          *  2) colliding with existing rock
          */
-        let mut new_rows = HashMap::new();
-        for (y, shape_points) in s.rows.iter() {
-            let mut new_row = Vec::new();
-            let new_y = y - 1;
-            if new_y < 0 {
-                self.petrify_shape();
-                return true;
-            }
-            for x in shape_points.iter() {
-                match self.rows.get(&new_y) {
-                    Some(rock_points) => {
-                        if rock_points.contains(&x) {
-                            self.petrify_shape();
-                            return true;
-                        }
-                    },
-                    _ => ()
+        let new_y = s.y - 1;
+        if new_y <= self.high_point {
+            for (i, shape_points) in s.rows.iter().enumerate() {
+                let y = new_y + i as i64;
+                // TODO: row ZERO of shaft should be filled to remove this check
+                if y < 0 {
+                    self.petrify_shape();
+                    return true;
                 }
-                new_row.push(x.to_owned());
-            };
-            new_rows.insert(new_y.to_owned(), new_row);
+                for offset in shape_points.iter() {
+                    match self.rows.get(&new_y) {
+                        Some(rock_points) => {
+                            if rock_points.contains(&(s.x + offset)) {
+                                self.petrify_shape();
+                                return true;
+                            }
+                        },
+                        _ => ()
+                    }
+                };
+            }
         }
-        s.rows = new_rows;
         
+        s.y -= 1;
         return false
     }
 
@@ -539,17 +685,27 @@ impl fmt::Display for Shaft {
             //      the shaft and the falling piece
             //
             let rock_points = self.rows.get(&y);
-            let shape_points = match self.shape.as_ref() {
+            let mut shape_points: Option<Vec<i32>> = None;
+            match self.shape.as_ref() {
                 Some(s) => {
-                    s.rows.get(&y)
+                    if y >= s.y {
+                        let row_offset: usize = (y - s.y).try_into().unwrap();
+                        if row_offset < s.rows.len() {
+                            let offsets = s.rows.get(row_offset).unwrap();
+                            shape_points = Some(
+                                offsets.iter().map(|o| {
+                                    o + s.x
+                                }).collect());
+                        }
+                    }
                 },
-                None => None
+                None => ()
             };
 
             let mut row_str = "|".to_owned();
             for x in 0..SHAFT_WIDTH {
                 match shape_points {
-                    Some(v) => {
+                    Some(ref v) => {
                         if v.contains(&x) {
                             row_str.push('@');
                             continue;
@@ -587,10 +743,6 @@ fn part_1(jets: JetStream) -> i64 {
         shaft.drop_shape();
     }
 
-    if FILENAME == "./test" {
-        assert_eq!(shaft.high_point + 1, 3068);
-    }
-
     shaft.high_point + 1
 }
 
@@ -600,7 +752,7 @@ fn part_2(jets: JetStream) -> i64 {
      * for the 120 days it would take to calculate :-|
      */
     // 1,000,000,000,000;
-    let limit: i64 = 1000000000000;
+    //let limit: i64 = 1000000000000;
     let cycle_len = 1000000;
 
     let mut shaft = Shaft::new(jets);
@@ -633,9 +785,14 @@ fn main() {
 
     let now = Instant::now();
     use std::time::Instant;
-    println!("Part 1: {}", part_1(jets.clone()));
+    let answer = part_1(jets.clone());
     let elapsed = now.elapsed();
+    println!("Part 1: {}", answer);
     println!("Took {:.5?}", elapsed);
+
+    if FILENAME == "./test" {
+        assert_eq!(answer, 3068);
+    }
 
     let now = Instant::now();
     println!("Part 2: {}", part_2(jets));
