@@ -1,6 +1,7 @@
-//const FILENAME: &str = "./input";
-const FILENAME: &str = "./test";
+const FILENAME: &str = "./input";
+//const FILENAME: &str = "./test";
 
+use std::hash::Hash;
 use std::{fmt, vec};
 use std::fs::read_to_string;
 use std::collections::HashMap;
@@ -352,6 +353,38 @@ mod tests {
         assert_eq!(shaft_str, test_str);
         assert_eq!(shaft.high_point, 16);
     }
+
+    #[test]
+    fn test_100_shapes() {
+        let mut shaft = get_test_shaft();
+
+        let first_100: Vec<i64> = vec![
+            1, 4, 6, 7, 9, 10, 13, 15, 17, 17,
+            18, 21, 23, 23, 25, 26, 29, 32, 36, 36,
+            37, 39, 42, 42, 43, 44, 47, 49, 51, 51,
+            51, 53, 56, 60, 60, 61, 63, 64, 66, 66,
+            67, 69, 70, 72, 72, 73, 76, 78, 78, 78,
+            79, 82, 85, 89, 89, 90, 92, 95, 95, 96,
+            97, 100, 102, 104, 104, 104, 106, 109, 113, 113,
+            114, 116, 117, 119, 119, 120, 122, 123, 125, 125,
+            126, 129, 131, 131, 131, 132, 135, 138, 142, 142,
+            143, 145, 148, 148, 149, 150, 153, 155, 157, 157,
+        ];
+
+        for (i, score) in first_100.into_iter().enumerate() {
+            shaft.add_next_shape();
+            shaft.drop_shape();
+
+            if shaft.high_point + 1 != score {
+                println!("{}: Expected {}: found {}",
+                        i, score, shaft.high_point + 1);
+                println!("{}", shaft);
+                assert_eq!(shaft.high_point + 1, score);
+            }
+        }
+
+
+    }
 }
 
 #[derive(Debug)]
@@ -455,6 +488,9 @@ struct Shaft {
     shape_count: i64,
     left_closure: i64,
     right_closure: i64,
+    cycle_detector: [HashMap<i32, i64>; 5],
+    cycle_start: i64,
+    cycle_len: i64,
 }
 
 const SHAFT_WIDTH: i32 = 7;
@@ -470,6 +506,14 @@ impl Shaft {
             shape_count: 0,
             left_closure: 0,
             right_closure: 0,
+            cycle_detector: [
+                HashMap::new(),
+                HashMap::new(),
+                HashMap::new(),
+                HashMap::new(),
+                HashMap::new()],
+            cycle_start: 0,
+            cycle_len: 0,
         }
 
     }
@@ -481,24 +525,89 @@ impl Shaft {
         }
     }
 
-    fn add_next_shape(&mut self) {
+    fn detect_cycle(&mut self) {
+        /*
+         * Find the CYCLE. At some point, we will generate the SAME shape, at
+         * the SAME point in the jetstream. From that point onward (or maybe
+         * after 2 or 3 cycles), the added height from cycle to cycle (and
+         * within cycles will be consistent). We need to create a hashset of
+         * the jetstream position for when each shape is generated. When we find
+         * a duplicate we have found a cycle?
+         */
         match self.next_shape {
             0 => {
-                if self.jets.chars_left == 0 {
-                    println!("Jetstream looped after {} shapes", self.shape_count);
+                if self.cycle_detector[0].contains_key(&self.jets.chars_left) {
+                    if self.cycle_start == 0 {
+                        self.cycle_start = self.shape_count;
+                        /*
+                        println!("Found cycle start: {}: {} jet position, score: {}",
+                            self.shape_count,
+                            self.jets.chars_left,
+                            self.high_point);
+                         */
+
+                        self.cycle_detector[0] = HashMap::new();
+
+                    } else if self.cycle_len == 0 {
+                        self.cycle_len = self.shape_count - self.cycle_start;
+                        /*
+                        println!("Found cycle len {}: {} shapes, {} jet position, score: {}",
+                            self.cycle_len,
+                            self.shape_count,
+                            self.jets.chars_left,
+                            self.high_point);
+                         */
+                    }
                 }
+                self.cycle_detector[0].insert(self.jets.chars_left, self.shape_count);
+            },
+            _ => ()
+        }
+    }
+
+    fn check_cycle(&mut self) {
+        if self.cycle_start == 0 || self.cycle_len == 0{
+            self.detect_cycle();
+        }
+    }
+
+    fn add_next_shape(&mut self) {
+        /*
+         * Find the CYCLE. At some point, we will generate the SAME shape, at
+         * the SAME point in the jetstream. From that point onward (or maybe
+         * after 2 or 3 cycles), the added height from cycle to cycle (and
+         * within cycles will be consistent). We need to create a hashset of
+         * the jetstream position for when each shape is generated. When we find
+         * a duplicate we have found a cycle?
+         */
+        self.check_cycle();
+        match self.next_shape {
+            0 => {
                 self.add_shape(Shape::horizontal_line(self.high_point))
             },
-            1 => self.add_shape(Shape::cross(self.high_point)),
-            2 => self.add_shape(Shape::ell(self.high_point)),
-            3 => self.add_shape(Shape::vertical_line(self.high_point)),
-            _ => self.add_shape(Shape::square(self.high_point))
+            1 => {
+                self.add_shape(Shape::cross(self.high_point))
+            },
+            2 => {
+                self.add_shape(Shape::ell(self.high_point))
+            },
+            3 => {
+                self.add_shape(Shape::vertical_line(self.high_point))
+            },
+            4 => {
+                self.add_shape(Shape::square(self.high_point))
+            },
+            _ => panic!("Illegal shape {}", self.next_shape)
         }
         self.next_shape = (self.next_shape + 1) % 5;
         self.shape_count += 1;
 
-        if self.shape_count % 8096 == 0 {
-            self.prune_dead_rows();
+        if self.cycle_len != 0 && self.shape_count % self.cycle_len == self.cycle_start {
+            println!("New cycle {}: height: {}, shapes: {}, jets {}",
+                self.shape_count / self.cycle_len,
+                self.high_point,
+                self.shape_count,
+            self.jets.chars_left);
         }
     }
 
@@ -635,14 +744,14 @@ impl Shaft {
         let new_y = s.y - 1;
         if new_y <= self.high_point {
             for (i, shape_points) in s.rows.iter().enumerate() {
-                let y = new_y + i as i64;
+                let cur_y = new_y + i as i64;
                 // TODO: row ZERO of shaft should be filled to remove this check
-                if y < 0 {
+                if cur_y < 0 {
                     self.petrify_shape();
                     return true;
                 }
                 for offset in shape_points.iter() {
-                    match self.rows.get(&new_y) {
+                    match self.rows.get(&cur_y) {
                         Some(rock_points) => {
                             if rock_points.contains(&(s.x + offset)) {
                                 self.petrify_shape();
@@ -752,28 +861,54 @@ fn part_2(jets: JetStream) -> i64 {
      * for the 120 days it would take to calculate :-|
      */
     // 1,000,000,000,000;
-    //let limit: i64 = 1000000000000;
-    let cycle_len = 1000000;
+    let limit: i64 = 1000000000000;
 
     let mut shaft = Shaft::new(jets);
 
-    /*
-     * with 5 different shapes and
-     */
     let mut prev_high = 0;
-    for i in 0..1 {
-        for _ in 0..cycle_len {
+    while shaft.cycle_len == 0  {
             shaft.add_next_shape();
             shaft.drop_shape();
+
+        if shaft.shape_count > 10000 {
+            panic!();
         }
-        println!("Cycle {}: {} (added {})",
-            i + 1,
-            shaft.high_point,
-            shaft.high_point - prev_high);
-        prev_high = shaft.high_point;
+    }
+    let shapes_to_start = shaft.shape_count - 1;
+
+    for _ in 0..shaft.cycle_len-1 {
+        shaft.add_next_shape();
+        shaft.drop_shape();
     }
 
-    shaft.high_point + 1
+    // build LUT for height added during cycle
+    let mut added_heights = Vec::new();
+    prev_high = shaft.high_point;
+    for _ in 0..shaft.cycle_len {
+        shaft.add_next_shape();
+        shaft.drop_shape();
+        added_heights.push(shaft.high_point - prev_high);
+    }
+    let cycle_height = shaft.high_point - prev_high;
+    let rval = shaft.high_point - cycle_height * 2;
+
+    // the total height aft
+    let mut added_heights_2 = Vec::new();
+    prev_high = shaft.high_point;
+    for _ in 0..shaft.cycle_len {
+        shaft.add_next_shape();
+        shaft.drop_shape();
+        added_heights_2.push(shaft.high_point - prev_high);
+    }
+
+    assert_eq!(added_heights[..10], added_heights_2[..10]);
+
+    let shapes_to_go = limit - shapes_to_start;
+    let num_cycles = shapes_to_go / shaft.cycle_len;
+    let rval = rval + num_cycles * cycle_height;
+
+    let i: usize = (shapes_to_go % shaft.cycle_len).try_into().unwrap();
+    rval + added_heights.get(i).unwrap()
 }
 
 fn main() {
@@ -795,7 +930,14 @@ fn main() {
     }
 
     let now = Instant::now();
-    println!("Part 2: {}", part_2(jets));
+    let answer = part_2(jets.clone());
     let elapsed = now.elapsed();
     println!("Took {:.5?}", elapsed);
+    println!("Part 2: {}", answer);
+
+    if FILENAME == "./test" {
+        assert_eq!(answer, 1514285714288);
+    } else {
+        assert_eq!(answer, 1570930232582);
+    }
 }
