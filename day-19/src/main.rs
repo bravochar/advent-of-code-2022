@@ -1,5 +1,5 @@
-//const FILENAME: &str = "./input";
-const FILENAME: &str = "./test";
+const FILENAME: &str = "./input";
+//const FILENAME: &str = "./test";
 
 use std::cmp::Ordering;
 use std::cmp::max;
@@ -411,11 +411,6 @@ impl <'v> Strategy<'v> {
             new.wait_turns(turns);
             new.build_geode_robot();
             rval.push(new);
-
-            if self.turn_num == 18 && self.obsidian_robots == 2 && self.clay_robots == 4 && self.ore_robots == 1 {
-                println!("Building geode robot: {}", self);
-                self.print_strat();
-            }
         }
 
         // check for obsidian robot
@@ -456,7 +451,7 @@ impl <'v> Strategy<'v> {
         let turns_left = TIME_LIMIT - self.turn_num + 1;
         let mut rval = self.geodes + turns_left * self.geode_robots;
 
-        for new_bots in (turns_left % 2..turns_left).step_by(2) {
+        for new_bots in 0..turns_left {
             rval += new_bots;
         }
 
@@ -586,6 +581,7 @@ fn part_1(mut blueprints: Vec<Blueprint>) -> i32 {
         }
 
         println!("Best strategy found {} geodes", bs.geodes);
+        //bs.print_strat();
         b.best_score = bs.geodes;
 
         rval += b.id * b.best_score;
