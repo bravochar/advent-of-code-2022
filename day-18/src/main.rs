@@ -2,8 +2,7 @@ const FILENAME: &str = "./input";
 //const FILENAME: &str = "./test";
 
 use std::cmp::Ordering;
-use std::{fmt, vec};
-use std::fs::{read, File};
+use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
 fn read_file(filename: &str) -> Vec<[i32; 3]> {
@@ -196,7 +195,7 @@ fn find_total_surface_area(mut cubes: Vec<[i32; 3]>) -> i32 {
     surface_area
 }
 
-fn part_2(mut cubes: Vec<[i32; 3]>) -> i32 {
+fn part_2(cubes: Vec<[i32; 3]>) -> i32 {
 
     find_total_surface_area(cubes)
 }
