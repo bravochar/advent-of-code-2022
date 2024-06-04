@@ -9,8 +9,6 @@ use std::io::{prelude::*, BufReader};
 use std::collections::HashMap;
 use std::collections::BinaryHeap;
 
-const TIME_LIMIT: i32 = 24;
-
 #[derive(Clone,Debug)]
 struct Blueprint {
     id: i32,
@@ -87,6 +85,7 @@ enum BuildRobot {
 struct Strategy<'v> {
     blueprint: &'v Blueprint,
     turn_num: i32,
+    time_limit: i32,
     actions: HashMap<i32, BuildRobot>,
     ore: i32,
     clay: i32,
@@ -182,11 +181,12 @@ impl <'v> PartialOrd for Strategy<'v> {
 }
 
 impl <'v> Strategy<'v> {
-    fn new(blueprint: &'v Blueprint) -> Strategy<'v> {
+    fn new(blueprint: &'v Blueprint, time_limit: i32) -> Strategy<'v> {
         // only thing that can happen first turn is that we produce
         // ore, so skip that step
         Strategy {
             turn_num: 1,
+            time_limit: time_limit,
             blueprint,
             actions: HashMap::new(),
             ore: 0,
@@ -301,7 +301,7 @@ impl <'v> Strategy<'v> {
 
         // no use building a robot if it isn't going to produce resources,
         // means we need 2 extra turns - 1 to build it and 1 for it to produce
-        let max_turns = TIME_LIMIT - self.turn_num - 1;
+        let max_turns = self.time_limit - self.turn_num - 1;
         
         if self.obsidian < obsidian {
             if self.obsidian_robots < 1 {
@@ -441,17 +441,17 @@ impl <'v> Strategy<'v> {
         }
 
         // final option: build nothing for the rest of time
-        self.wait_turns(TIME_LIMIT - self.turn_num + 1);
+        self.wait_turns(self.time_limit - self.turn_num + 1);
         rval.push(self);
 
         rval
     }
 
     fn max_geodes(&self) -> i32 {
-        let turns_left = TIME_LIMIT - self.turn_num + 1;
+        let turns_left = self.time_limit - self.turn_num + 1;
         let mut rval = self.geodes + turns_left * self.geode_robots;
 
-        for new_bots in 0..turns_left {
+        for new_bots in 1..turns_left {
             rval += new_bots;
         }
 
@@ -475,10 +475,10 @@ fn read_file(filename: &str) -> Vec<Blueprint> {
     rval
 }
 
-fn breadth_first_max(bp: &Blueprint) -> Strategy {
+fn breadth_first_max(bp: &Blueprint, time_limit: i32) -> Strategy {
     // use a binary heap to be a depth-first search of all possible
     // strategies
-    let s = Strategy::new(bp);
+    let s = Strategy::new(bp, time_limit);
     let mut strats = Vec::new();
     let mut best_strat: Option<Strategy> = None;
 
@@ -496,12 +496,12 @@ fn breadth_first_max(bp: &Blueprint) -> Strategy {
             }
 
             for new_s in s.build_next_robots() {
-                if new_s.turn_num > TIME_LIMIT {
+                if new_s.turn_num > new_s.time_limit {
                     // check for new best strategy
                     best_strat = match best_strat {
                         Some(bs) => {
                             if new_s.geodes > bs.geodes {
-                                println!("New best strategy: {}", new_s);
+                                //println!("New best strategy: {}", new_s);
                                 //new_s.print_strat();
                                 Some(new_s)
                             } else {
@@ -522,10 +522,10 @@ fn breadth_first_max(bp: &Blueprint) -> Strategy {
     best_strat.unwrap()
 }
 
-fn find_max_score(bp: &Blueprint) -> Strategy {
+fn find_max_score(bp: &Blueprint, time_limit: i32) -> Strategy {
     // use a binary heap to be a depth-first search of all possible
     // strategies
-    let s = Strategy::new(bp);
+    let s = Strategy::new(bp, time_limit);
     let mut strats = BinaryHeap::new();
     let mut best_strat: Option<Strategy> = None;
 
@@ -545,12 +545,12 @@ fn find_max_score(bp: &Blueprint) -> Strategy {
 
         //for new_s in s.take_turn() {
         for new_s in s.build_next_robots() {
-            if new_s.turn_num > TIME_LIMIT {
+            if new_s.turn_num > new_s.time_limit {
                 // check for new best strategy
                 best_strat = match best_strat {
                     Some(bs) => {
                         if new_s.geodes > bs.geodes {
-                            println!("New best strategy: {}", new_s);
+                            //println!("New best strategy: {}", new_s);
                             //new_s.print_strat();
                             Some(new_s)
                         } else {
@@ -575,9 +575,9 @@ fn part_1(mut blueprints: Vec<Blueprint>) -> i32 {
         let bs;
         println!("{}", b);
         if true {
-            bs = find_max_score(&b);
+            bs = find_max_score(&b, 24);
         } else {
-            bs = breadth_first_max(&b);
+            bs = breadth_first_max(&b, 24);
         }
 
         println!("Best strategy found {} geodes", bs.geodes);
@@ -590,9 +590,19 @@ fn part_1(mut blueprints: Vec<Blueprint>) -> i32 {
     rval
 }
 
-fn part_2(_blueprints: Vec<Blueprint>) -> i32 {
+fn part_2(blueprints: Vec<Blueprint>) -> i32 {
+    let mut rval = 1;
 
-    0
+    for b in blueprints.iter() {
+        let bs;
+        println!("{}", b);
+        bs = find_max_score(&b, 32);
+
+        println!("Best strategy found {} geodes", bs.geodes);
+        rval *= bs.geodes;
+    }
+
+    rval
 }
 
 fn main() {
@@ -610,10 +620,12 @@ fn main() {
 
     if FILENAME == "./test" {
         assert_eq!(answer, 33);
+    } else {
+        assert_eq!(answer, 1389);
     }
 
     let now = Instant::now();
-    let answer = part_2(blueprints.clone());
+    let answer = part_2(blueprints[0..3].to_vec());
     let elapsed = now.elapsed();
     println!("Part 2: {}", answer);
     println!("Took {:.5?}", elapsed);
@@ -635,7 +647,7 @@ mod tests {
     #[test]
     fn print_test_strat() {
         let blueprints = get_blueprints();
-        let mut s = Strategy::new(blueprints.get(0).unwrap());
+        let mut s = Strategy::new(blueprints.get(0).unwrap(), 24);
         s.actions.insert(3, BuildRobot::ClayRobot);
         s.actions.insert(5, BuildRobot::ClayRobot);
         s.actions.insert(7, BuildRobot::ClayRobot);
