@@ -25,7 +25,7 @@ fn part_1(mut numbers: Vec<i32>) -> i32 {
     let vec_len = numbers.len();
 
     let mut old_index: usize = 0;
-    for (i, val) in orig.iter().enumerate() {
+    for (_, val) in orig.iter().enumerate() {
         if *val == 0 {
             continue;
         }
@@ -39,10 +39,6 @@ fn part_1(mut numbers: Vec<i32>) -> i32 {
         }
 
         // % makes it a positive integer
-        let mut move_dist: i32 = val.to_owned() % vec_len as i32;
-        let mut new_index: i32;
-
-        new_index = old_index as i32;
         numbers.remove(old_index);
         let modulo = vec_len as i32 - 1;
         let move_dist: i32 = val.to_owned().rem_euclid(modulo);
@@ -98,10 +94,6 @@ fn part_2(numbers: Vec<i32>) -> i64 {
             }
 
             // % makes it a positive integer
-            let mut move_dist: i64 = val % vec_len as i64;
-            let mut new_index: i64;
-
-            new_index = old_index as i64;
             let modulo = vec_len as i64 - 1;
             let move_dist: i64 = val.rem_euclid(modulo);
             let new_index = old_index as i64 + move_dist;
@@ -166,10 +158,6 @@ fn main() {
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
-
-    fn get_numbers() -> Vec<i32> {
-        read_file("./test")
-    }
 
     #[test]
     fn print_test_strat() {
