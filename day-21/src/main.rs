@@ -109,7 +109,7 @@ fn read_file(filename: &str) -> Vec<Monkey> {
 fn part_1(monkeys: Vec<Monkey>) -> i64 {
     let mut map = HashMap::new();
     for m in monkeys {
-        println!("{}", m.to_string());
+        //println!("{}", m.to_string());
         map.insert(m.id.clone(), m);
     }
     
@@ -119,7 +119,7 @@ fn part_1(monkeys: Vec<Monkey>) -> i64 {
 fn part_2(monkeys: Vec<Monkey>) -> i64 {
     let mut map = HashMap::new();
     for m in monkeys {
-        println!("{}", m.to_string());
+        //println!("{}", m.to_string());
         map.insert(m.id.clone(), m);
     }
     let root = map.get("root").unwrap();
@@ -164,7 +164,7 @@ fn part_2(monkeys: Vec<Monkey>) -> i64 {
         let val_2 = get_monkey_val(&id_2, &map);
         let new_cmp = val_1.cmp(&val_2);
 
-        println!("{} != {} ({} i: {})", val_1, val_2, h, i);
+        //println!("{} != {} ({} i: {})", val_1, val_2, h, i);
         if new_cmp == Ordering::Equal {
             loop {
                 h -= 1;
@@ -175,7 +175,7 @@ fn part_2(monkeys: Vec<Monkey>) -> i64 {
                 let val_2 = get_monkey_val(&id_2, &map);
                 let new_cmp = val_1.cmp(&val_2);
                 if new_cmp == Ordering::Equal {
-                    println!("{} == {} ({} i: {})", val_1, val_2, h, i);
+                    //println!("{} == {} ({} i: {})", val_1, val_2, h, i);
                 } else {
                     break;
                 }
