@@ -153,14 +153,3 @@ fn main() {
         assert_eq!(answer, 1623178306);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
-    use super::*;
-
-    #[test]
-    fn print_test_strat() {
-
-    }
-}
