@@ -24,7 +24,7 @@ impl Monkey {
             self.business += 1;
 
             item = (self.mut_func)(item);
-            item = item % GCD;
+            item %= GCD;
             //println!("    Worry level is mutated to {}.", item);
 
             //item /= 3;
@@ -41,7 +41,7 @@ impl Monkey {
             }
         }
 
-        return (true_rval, false_rval);
+        (true_rval, false_rval)
     }
 }
 
@@ -211,10 +211,10 @@ fn input_monkeys() -> Vec::<Monkey> {
         false_monkey: 1
     };
 
-    return vec![monkey_0, monkey_1, monkey_2, monkey_3, monkey_4, monkey_5, monkey_6, monkey_7]
+    vec![monkey_0, monkey_1, monkey_2, monkey_3, monkey_4, monkey_5, monkey_6, monkey_7]
 }
 
-fn monkey_take_turn( monkeys: &mut Vec<Monkey>, i: usize) ->(VecDeque<i64>, VecDeque<i64>) {
+fn monkey_take_turn( monkeys: &mut [Monkey], i: usize) ->(VecDeque<i64>, VecDeque<i64>) {
     let cur: &mut Monkey = monkeys.get_mut(i).unwrap();
 
     cur.take_turn()

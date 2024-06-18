@@ -14,7 +14,7 @@ enum PacketData {
     List( Vec<PacketData> ),
 }
 
-fn compare_packet_lists(left: &Vec<PacketData>, right: &Vec<PacketData>) -> Ordering {
+fn compare_packet_lists(left: &[PacketData], right: &[PacketData]) -> Ordering {
     let mut left_iter = left.iter();
     let mut right_iter = right.iter();
     let mut rval = Ordering::Equal;
@@ -22,12 +22,12 @@ fn compare_packet_lists(left: &Vec<PacketData>, right: &Vec<PacketData>) -> Orde
     while rval == Ordering::Equal {
         if let Some(l) = left_iter.next() {
             if let Some(r) = right_iter.next() {
-                rval = compare_packets(&l, &r);
+                rval = compare_packets(l, r);
             } else {
                 return Ordering::Greater;
             }
         } else {
-            if let Some(_) = right_iter.next() {
+            if right_iter.next().is_some() {
                 return Ordering::Less;
             }
 
@@ -35,29 +35,29 @@ fn compare_packet_lists(left: &Vec<PacketData>, right: &Vec<PacketData>) -> Orde
         }
     }
 
-    return rval;
+    rval
 }
 fn compare_packets(left: &PacketData, right: &PacketData) -> Ordering {
     match left {
         PacketData::Integer(l) => {
             match right {
                 PacketData::Integer(r) => {
-                    return l.cmp(r);
+                    l.cmp(r)
                 },
                 PacketData::List(r) => {
                     let l_list = vec!(left.clone());
-                    return compare_packet_lists(&l_list, r);
+                    compare_packet_lists(&l_list, r)
                 }
             }
         },
         PacketData::List(l) => {
             match right {
                 PacketData::List(r) => {
-                    return compare_packet_lists(l, r);
+                    compare_packet_lists(l, r)
                 },
                 PacketData::Integer(_) => {
                     let r_list = vec!(right.clone());
-                    return compare_packet_lists(l, &r_list);
+                    compare_packet_lists(l, &r_list)
                 }
             }
         },

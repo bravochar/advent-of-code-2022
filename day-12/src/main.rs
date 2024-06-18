@@ -43,7 +43,7 @@ fn print_hills(hills: &Vec::<Vec::<Hill>>) {
         for h in row {
             print!("{}", h.h_char);
         }
-        print!("\n");
+        println!();
     }
 }
 
@@ -73,20 +73,20 @@ fn read_hill_grid() -> Vec::<Vec::<Hill>> {
 }
 
 
-fn mark_visited(p: &Point, hills: &mut Vec::<Vec::<Hill>>) {
+fn mark_visited(p: &Point, hills: &mut[Vec<Hill>]) {
     let row = hills.get_mut(p.y).unwrap();
     let h : &mut Hill = row.get_mut(p.x).unwrap();
 
     h.visited = true
 }
 
-fn check_if_visited(p: &Point, hills: &Vec::<Vec::<Hill>>) -> bool {
+fn check_if_visited(p: &Point, hills: &[Vec<Hill>]) -> bool {
     hills.get(p.y).unwrap().get(p.x).unwrap().visited
 }
 
-fn get_next_steps(pos: &Point, hills: &mut Vec::<Vec::<Hill>>) -> Vec::<Point> {
+fn get_next_steps(pos: &Point, hills: &mut[Vec<Hill>]) -> Vec::<Point> {
     let max_y = hills.len() - 1;
-    let first_row = hills.get(0).unwrap();
+    let first_row = hills.first().unwrap();
     let max_x = first_row.len() - 1;
 
     // start with those possible from the contraints of the grid
@@ -132,7 +132,7 @@ fn get_next_steps(pos: &Point, hills: &mut Vec::<Vec::<Hill>>) -> Vec::<Point> {
     rval
 }
 
-fn take_step_on_path(path: Vec::<Point>, hills: &mut Vec::<Vec::<Hill>>) -> Vec::<Vec::<Point>> {
+fn take_step_on_path(path: Vec::<Point>, hills: &mut[Vec<Hill>]) -> Vec::<Vec::<Point>> {
     let mut ret_paths = Vec::<Vec::<Point>>::new();
 
     // get list of points we can move to
@@ -198,12 +198,10 @@ fn find_best_path_from_point(mut hills: Vec::<Vec::<Hill>>, s: Point, e: Point) 
     mark_visited(&s, &mut hills);
 
     // declare a vector of vectors of points to hold all paths we're exploring
-    let mut paths = Vec::<Vec::<Point>>::new();
-    let mut starting_path = Vec::<Point>::new();
-    starting_path.push( s.clone() );
-    paths.push(starting_path);
+    let starting_path = vec![s.clone()];
+    let paths = vec![starting_path];
 
-    return find_best_path(paths, hills, e);
+    find_best_path(paths, hills, e)
 }
 
 /*
@@ -215,7 +213,7 @@ fn print_paths(paths: &Vec::<Vec::<Point>>) {
 }
 */
 
-fn find_hill_char(hills: &Vec::<Vec::<Hill>>, c: char) -> Result<Point, String> {
+fn find_hill_char(hills: &[Vec<Hill>], c: char) -> Result<Point, String> {
     for (y, row) in hills.iter().enumerate() {
         for (x, h) in row.iter().enumerate() {
             if h.h_char == c {
@@ -240,7 +238,7 @@ fn part_1() {
     println!("Found end at {:?}", end);
 
     let max_y = hills.len() - 1;
-    let first_row = hills.get(0).unwrap();
+    let first_row = hills.first().unwrap();
     let max_x = first_row.len() - 1;
     println!("Total points are {}", max_x * max_y);
 
@@ -271,22 +269,19 @@ fn part_2() {
     println!("Found end at {:?}", end);
 
     let max_y = hills.len() - 1;
-    let first_row = hills.get(0).unwrap();
+    let first_row = hills.first().unwrap();
     let max_x = first_row.len() - 1;
     println!("Total points are {}", max_x * max_y);
 
     // declare a vector of vectors of points to hold all paths we're exploring
-    let mut paths = Vec::<Vec::<Point>>::new();
-    let mut starting_path = Vec::<Point>::new();
-    starting_path.push( start.clone() );
-    paths.push(starting_path);
+    let starting_path = vec![start.clone()];
+    let mut paths = vec![starting_path];
 
     // find all points with 'a' and add to starting paths
     for (y, row) in hills.iter().enumerate() {
         for (x, h) in row.iter().enumerate() {
             if h.h_char == 'a' {
-                let mut path = Vec::<Point>::new();
-                path.push(Point {x, y});
+                let path = vec![Point {x, y}];
                 paths.push(path);
             }
         }
