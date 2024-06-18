@@ -50,7 +50,7 @@ impl DirEntry {
 
     fn new_dir(path: &str) -> Self {
         let mut dir_path = String::from(path);
-        if !dir_path.ends_with("/") {
+        if !dir_path.ends_with('/') {
             dir_path.push('/');
         }
         Self {
@@ -64,9 +64,8 @@ impl DirEntry {
     fn add_dir(&mut self, dir: &mut Self) -> bool {
         if self.is_dir {
             if self.path.eq(&dir.path) {
-                while !dir.entries.is_empty() {
-                    self.entries.insert(0, dir.entries.pop()
-                        .expect("This shouldn't ever happen"));
+                while let Some(e) = dir.entries.pop() {
+                    self.entries.insert(0, e);
                 }
                 return true;
             }
@@ -88,7 +87,7 @@ impl DirEntry {
                 new_prefix.push_str(prefix);
 
                 println!("{}- {} (dir)", prefix, e.path);
-                DirEntry::print_dir(&e, &new_prefix);
+                DirEntry::print_dir(e, &new_prefix);
 
             } else {
                 println!("{}- {} (file, size={})", prefix, e.path, e.size());
@@ -99,11 +98,11 @@ impl DirEntry {
     fn print(&self) {
         println!("- {} (dir)", self.path);
 
-        DirEntry::print_dir(&self, "  ");
+        DirEntry::print_dir(self, "  ");
     }
 }
 
-fn part_1() {
+fn part_1() -> usize {
     // Open the file
     let file = File::open(FILENAME).unwrap();
     let reader = BufReader::new(file);
@@ -119,26 +118,25 @@ fn part_1() {
         let line_str = line.expect("Couldn't read line as string?");
         let line_str = line_str.trim();
 
-        if line_str.starts_with("$ cd ") {
+        if let Some(dir_str) = line_str.strip_prefix("$ cd ") {
 
             // insert previously listed directory into tree
             if proc_output {
                 if !root.add_dir(&mut cur_dir) {
                     println!("Error: couldn't add dir {:?}", cur_dir);
-                    return;
+                    return 0;
                 }
                 cur_dir = DirEntry::new_dir("/");
             }
             proc_output = false;
 
-            if line_str.len() < 6 {
+            let dir_str = dir_str.trim();
+            if dir_str.is_empty() {
                 // invalid `cd` - no change to state
                 continue;
             }
-            let dir_str = &line_str[5..];
-            let dir_str = dir_str.trim();
 
-            if dir_str.starts_with("/") {
+            if dir_str.starts_with('/') {
                 pwd.clear();
                 pwd.push_str(dir_str);
 
@@ -149,12 +147,12 @@ fn part_1() {
                 }
 
                 // remove trailing slash
-                if pwd.ends_with("/") {
+                if pwd.ends_with('/') {
                     pwd.pop();
                 }
 
                 // find previous directory marker
-                let par_dir = pwd.rfind("/");
+                let par_dir = pwd.rfind('/');
 
                 // truncate string to marker from above
                 if let Some(dir_mark) = par_dir {
@@ -163,7 +161,7 @@ fn part_1() {
 
             } else {
                 pwd.push_str(dir_str);
-                pwd.push_str("/");
+                pwd.push('/');
             }
 
         } else if line_str.starts_with("$ ls") {
@@ -173,10 +171,10 @@ fn part_1() {
             cur_dir = DirEntry::new_dir(&pwd);
 
         } else if proc_output {
-            let splits: Vec<&str> = line_str.split(" ").collect();
+            let splits: Vec<&str> = line_str.split(' ').collect();
             if splits.len() != 2 {
                 println!("Error splitting LS output: {}", line_str);
-                return;
+                return 0;
             }
             let mut path = String::from(&pwd);
 
@@ -201,16 +199,14 @@ fn part_1() {
         } else {
             // invalid state
             println!("Error: Invalid state: Exiting. Line was : '{}'", line_str);
-            return;
+            return 0;
         }
     }
 
     // XXX: Catch last directory here
-    if proc_output {
-        if !root.add_dir(&mut cur_dir) {
-            println!("Error: couldn't add dir {:?}", cur_dir);
-            return;
-        }
+    if proc_output && !root.add_dir(&mut cur_dir) {
+        println!("Error: couldn't add dir {:?}", cur_dir);
+        return 0;
     }
 
     for e in root.entries.iter() {
@@ -223,10 +219,8 @@ fn part_1() {
     // XXX: Well then, traverse the tree and save the size of all directories less than 100000
     // bytes
     let size_limit = 100000;
-    let answer = sum_dirs_less_than_size(&root, size_limit);
 
-    // Print the answer to the first part
-    println!("First Answer: {:?}", answer);
+    sum_dirs_less_than_size(&root, size_limit)
 }
 
 fn sum_dirs_less_than_size(d: &DirEntry, sz_limit: usize) -> usize {
@@ -242,10 +236,10 @@ fn sum_dirs_less_than_size(d: &DirEntry, sz_limit: usize) -> usize {
         }
     }
 
-    return rval;
+    rval
 }
 
-fn part_2() {
+fn part_2() -> usize {
     // Open the file
     let file = File::open(FILENAME).unwrap();
     let reader = BufReader::new(file);
@@ -261,26 +255,25 @@ fn part_2() {
         let line_str = line.expect("Couldn't read line as string?");
         let line_str = line_str.trim();
 
-        if line_str.starts_with("$ cd ") {
+        if let Some(dir_str) = line_str.strip_prefix("$ cd ") {
 
             // insert previously listed directory into tree
             if proc_output {
                 if !root.add_dir(&mut cur_dir) {
                     println!("Error: couldn't add dir {:?}", cur_dir);
-                    return;
+                    return 0;
                 }
                 cur_dir = DirEntry::new_dir("/");
             }
             proc_output = false;
 
-            if line_str.len() < 6 {
+            let dir_str = dir_str.trim();
+            if dir_str.is_empty() {
                 // invalid `cd` - no change to state
                 continue;
             }
-            let dir_str = &line_str[5..];
-            let dir_str = dir_str.trim();
 
-            if dir_str.starts_with("/") {
+            if dir_str.starts_with('/') {
                 pwd.clear();
                 pwd.push_str(dir_str);
 
@@ -291,12 +284,12 @@ fn part_2() {
                 }
 
                 // remove trailing slash
-                if pwd.ends_with("/") {
+                if pwd.ends_with('/') {
                     pwd.pop();
                 }
 
                 // find previous directory marker
-                let par_dir = pwd.rfind("/");
+                let par_dir = pwd.rfind('/');
 
                 // truncate string to marker from above
                 if let Some(dir_mark) = par_dir {
@@ -305,7 +298,7 @@ fn part_2() {
 
             } else {
                 pwd.push_str(dir_str);
-                pwd.push_str("/");
+                pwd.push('/');
             }
 
         } else if line_str.starts_with("$ ls") {
@@ -315,10 +308,10 @@ fn part_2() {
             cur_dir = DirEntry::new_dir(&pwd);
 
         } else if proc_output {
-            let splits: Vec<&str> = line_str.split(" ").collect();
+            let splits: Vec<&str> = line_str.split(' ').collect();
             if splits.len() != 2 {
                 println!("Error splitting LS output: {}", line_str);
-                return;
+                return 0;
             }
             let mut path = String::from(&pwd);
 
@@ -343,16 +336,14 @@ fn part_2() {
         } else {
             // invalid state
             println!("Error: Invalid state: Exiting. Line was : '{}'", line_str);
-            return;
+            return 0;
         }
     }
 
     // XXX: Catch last directory here
-    if proc_output {
-        if !root.add_dir(&mut cur_dir) {
-            println!("Error: couldn't add dir {:?}", cur_dir);
-            return;
-        }
+    if proc_output && !root.add_dir(&mut cur_dir) {
+        println!("Error: couldn't add dir {:?}", cur_dir);
+        return 0;
     }
 
     // XXX: Well then, traverse the tree and save the size of all directories less than 100000
@@ -361,10 +352,7 @@ fn part_2() {
     let total_size = 70000000;
     let size_limit = space_needed - (total_size - root.size());
     println!("Looking for {} bytes of space", size_limit);
-    let answer = find_dir_closest_to_size(&root, size_limit, root.size());
-
-    // Print the answer to the second part
-    println!("Second Answer: {:?}", answer);
+    find_dir_closest_to_size(&root, size_limit, root.size())
 }
 
 fn find_dir_closest_to_size(d: &DirEntry, sz_limit: usize, cur_lead: usize) -> usize {
@@ -382,13 +370,18 @@ fn find_dir_closest_to_size(d: &DirEntry, sz_limit: usize, cur_lead: usize) -> u
         }
     }
 
-    return rval;
+    rval
 }
 
 fn main() {
     println!("Advent of Code, Day 7");
 
-    part_1();
-    part_2();
+    let answer = part_1();
+    println!("First Answer: {:?}", answer);
+    assert_eq!(1477771, answer);
+
+    let answer = part_2();
+    println!("Second Answer: {:?}", answer);
+    assert_eq!(3579501, answer);
 }
 

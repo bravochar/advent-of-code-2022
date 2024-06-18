@@ -48,7 +48,7 @@ fn follow(tail: &mut Coord, head: &Coord) {
 }
 
 fn move_from_line(line_str: String) -> (String, i32) {
-    let splits: Vec<&str> = line_str.split(" ").collect();
+    let splits: Vec<&str> = line_str.split(' ').collect();
 
     if splits.len() == 2 {
         let dir = splits[0];

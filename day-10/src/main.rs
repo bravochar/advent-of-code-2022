@@ -16,7 +16,7 @@ enum Instr {
 }
 
 fn instr_from_line(line_str: String) -> Instr {
-    let splits: Vec<&str> = line_str.split(" ").collect();
+    let splits: Vec<&str> = line_str.split(' ').collect();
 
     if splits.len() == 2 && splits[0] == "addx" {
         let mag: i32 = splits[1].parse().expect("Couldn't parse move magnitude");
@@ -45,13 +45,11 @@ fn part_1() {
         let line_str = line.expect("Couldn't read line as string?");
         let instr = instr_from_line(line_str);
         
-        let reg_val = reg_status.last().unwrap().clone();
+        let reg_val = *reg_status.last().unwrap();
         match instr {
             Instr::Noop => reg_status.push(reg_val),
             Instr::Addx(val) => {
-                for _ in [1..val] {
-                    reg_status.push(reg_val);
-                }
+                reg_status.push(reg_val);
                 reg_status.push(reg_val + val);
             }
         }
@@ -63,7 +61,7 @@ fn part_1() {
         let strength = reg_status.get(i).unwrap();
         let strength = i as i32 * strength;
         
-        println!("Curing Cycle {}: {}", i, strength);
+        //println!("Curing Cycle {}: {}", i, strength);
         sum += strength;
     }
 
@@ -74,7 +72,7 @@ fn part_1() {
     let mut screen = vec!['.'; 241];
 
     for (i, reg) in reg_status.iter().enumerate() {
-        println!("Cycle {}: {}", i, reg);
+        //println!("Cycle {}: {}", i, reg);
         if i == 0 {
             // we ignore 0
             continue;

@@ -52,8 +52,8 @@ fn mark_visible_trees(mut trees: Vec::<Vec::<Tree>>) -> Vec::<Vec::<Tree>> {
     // walk the top side
     for y in 0..row_len {
         let mut h = 0;
-        for x in 0..num_rows {
-            let t: &mut Tree = &mut trees[x][y];
+        for (x, row) in  trees.iter_mut().enumerate() {
+            let t: &mut Tree = &mut row[y];
 
             // tree is visible if it is taller than previously seen tallest tree
             if t.height >= h {
@@ -74,10 +74,10 @@ fn mark_visible_trees(mut trees: Vec::<Vec::<Tree>>) -> Vec::<Vec::<Tree>> {
     }
 
     // walk the right side
-    for x in 0..num_rows {
+    for (x, row) in  trees.iter_mut().enumerate() {
         let mut h = 0;
         for y in (0..row_len).rev() {
-            let t: &mut Tree = &mut trees[x][y];
+            let t: &mut Tree = &mut row[y];
 
             // tree is visible if it is taller than previously seen tallest tree
             if t.height >= h {
@@ -169,78 +169,72 @@ fn sum_visible_trees(trees: Vec::<Vec::<Tree>>) -> u32 {
     sum
 }
 
-fn part_1() {
+fn part_1() -> u32 {
 
     let trees = read_tree_grid();
 
     // Print the answer to the first part
     let answer = sum_visible_trees(trees);
     println!("First Answer: {:?}", answer);
+
+    answer
 }
 
-fn calc_vis_score(trees: &Vec::<Vec::<Tree>>, x: usize, y: usize) -> usize {
+fn calc_vis_score(trees: &[Vec::<Tree>], x: usize, y: usize) -> usize {
     let mut score = 1;
-    let num_rows = trees.len();
-    let row_len = trees[0].len();
     let t = &trees[x][y];
-
-    println!("Calculating vis score of {:?}", t);
 
     // look up
     let mut s = 0;
-    for i in (0..x).rev() {
+    for row in trees.iter().take(x).rev() {
         s += 1;
-        if trees[i][y].height >= t.height {
+        if row[y].height >= t.height {
             break;
         }
     }
-    println!("Can see {} tree(s) looking up", s);
     score *= s;
 
     // look right
     let mut s = 0;
-    for j in y+1..row_len {
+    for t2 in trees[x].iter().skip(y+1) {
         s += 1;
-        if trees[x][j].height >= t.height {
+        if t2.height >= t.height {
             break;
         }
     }
-    println!("Can see {} tree(s) looking right", s);
     score *= s;
 
     // look down
     let mut s = 0;
-    for i in x+1..num_rows {
+    for row in trees.iter().skip(x+1) {
         s += 1;
-        if trees[i][y].height >= t.height {
+        if row[y].height >= t.height {
             break;
         }
     }
-    println!("Can see {} tree(s) looking down", s);
     score *= s;
 
     // look right
     let mut s = 0;
-    for j in (0..y).rev() {
+    for t2 in trees[x].iter().take(y).rev() {
         s += 1;
-        if trees[x][j].height >= t.height {
+        if t2.height >= t.height {
             break;
         }
     }
-    println!("Can see {} tree(s) looking left", s);
     score *= s;
 
     score
 }
 
-fn find_max_vis_score(trees: &Vec::<Vec::<Tree>>) -> usize {
+fn find_max_vis_score(trees: &[Vec::<Tree>]) -> usize {
     let mut score = 0;
     let num_rows = trees.len();
     let row_len = trees[0].len();
 
     for x in 1..num_rows-1 {
         for y in 1..row_len-1 {
-            let s = calc_vis_score(&trees, x, y);
+            let s = calc_vis_score(trees, x, y);
             if s > score {
                 score = s;
             }
@@ -250,19 +244,21 @@ fn find_max_vis_score(trees: &Vec::<Vec::<Tree>>) -> usize {
     score
 }
 
-fn part_2() {
+fn part_2() -> usize {
 
     let trees = read_tree_grid();
 
     // Print the answer to the second part
     let answer = find_max_vis_score(&trees);
     println!("Second Answer: {:?}", answer);
+
+    answer
 }
 
 fn main() {
     println!("Advent of Code, Day 8");
 
-    part_1();
-    part_2();
+    assert_eq!(part_1(), 1789);
+    assert_eq!(part_2(), 314820);
 }
 
