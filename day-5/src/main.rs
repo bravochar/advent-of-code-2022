@@ -3,7 +3,7 @@ use std::io::{prelude::*, BufReader};
 
 const FILENAME: &str = "./input";
 
-fn crates_from_str(l: &String) -> Vec::<char> {
+fn crates_from_str(l: &str) -> Vec::<char> {
     let mut rval = Vec::<char>::new();
     let char_vec: Vec::<char> = l.chars().collect();
 
@@ -24,7 +24,7 @@ fn crates_from_str(l: &String) -> Vec::<char> {
         i += 4;
     }
 
-    return rval;
+    rval
 }
 
 fn moves_from_str(l: &str) -> (usize, usize, usize) {
@@ -38,7 +38,7 @@ fn moves_from_str(l: &str) -> (usize, usize, usize) {
     let src = l_vec[3].parse().expect("Could not parse source of crates");
     let dst = l_vec[5].parse().expect("Could not parse dest. of crates");
 
-    return (num, src, dst);
+    (num, src, dst)
 }
 
 fn part_1() {

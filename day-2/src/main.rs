@@ -94,7 +94,7 @@ fn part_1() {
     // Read file line by line
     for line in reader.lines() {
         let line_str = line.unwrap();
-        let parts = line_str.split(" ").collect::<Vec<&str>>();
+        let parts = line_str.split(' ').collect::<Vec<&str>>();
         if parts.len() < 2 {
             println!("Error parsing line {:?}", line_str);
             continue;
@@ -123,7 +123,7 @@ fn part_2() {
     // Read file line by line
     for line in reader.lines() {
         let line_str = line.unwrap();
-        let parts = line_str.split(" ").collect::<Vec<&str>>();
+        let parts = line_str.split(' ').collect::<Vec<&str>>();
         if parts.len() < 2 {
             println!("Error parsing line {:?}", line_str);
             continue;
