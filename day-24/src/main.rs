@@ -57,6 +57,30 @@ impl Point {
             }
         }
     }
+
+    fn valid_moves(&self, length: usize, height: usize) -> Vec<Point> {
+        let mut rval = vec![*self];
+
+        if self.y < height || (self.y == height && self.x == length) {
+            rval.push(self.move_dir(&Direction::South));
+        }
+
+        if self.y > 1 || (self.y == 1 && self.x == 1) {
+            rval.push(self.move_dir(&Direction::North));
+        }
+
+        if self.y >= 1 && self.y <= height {
+            if self.x < length {
+                rval.push(self.move_dir(&Direction::East));
+            }
+
+            if self.x > 1 {
+                rval.push(self.move_dir(&Direction::West));
+            }
+        }
+
+        rval
+    }
 }
 
 fn read_file(filename: &str) -> HashMap<Point, Vec<Direction>> {
@@ -240,30 +264,17 @@ impl Path {
 
     fn next_paths(path: Self, b: &mut Blizzards) -> Vec<Self> {
         let mut rval = Vec::new();
-        let map = b.get_map(path.moves.len());
+        let t = path.moves.len();
+        if t > 0 {
+            let map_p = b.get_map(t - 1);
 
-        let mut next_points = Vec::new();
-        let p = path.moves.last().expect("Path without moves?");
-        for x in p.x-1..=p.x+1 {
-            let min_y = if p.y == 0 {0} else {p.y - 1};
-            for y in min_y..=p.y+1 {
-                if x > 0 && x <= path.length
-                        && y > 0 && y <= path.height
-                        && (x == p.x || y == p.y) {
-                    next_points.push(Point{x, y});
-
-                } else if x == path.length && y == path.height + 1 {
-                    let mut end_path = path.clone();
-                    end_path.moves.push(Point{x, y});
-                    return vec![end_path];
-
-                } else if x == p.x && y == p.y {
-                    next_points.push(Point{x, y});
-                }
-            }
+            assert!(!map_p.contains_key(path.moves.last().unwrap()));
         }
+        let length = b.length;
+        let height = b.height;
+        let map = b.get_map(t);
 
-        for p in next_points {
+        for p in path.moves.last().unwrap().valid_moves(length, height) {
             if !map.contains_key(&p) {
                 let mut new_path = path.clone();
                 new_path.moves.push(p);
@@ -293,7 +304,7 @@ impl Path {
     fn print_path(&self, b: &mut Blizzards) {
         for (t, p) in self.moves.iter().enumerate() {
             let map = b.get_map(t);
-            println!("Minute {}", t);
+            println!("Minute {}, move to {:?}|", t, p);
             for y in 0..=self.height+1 {
                 let mut line = String::new();
                 for x in 0..=self.length+1 {
@@ -392,7 +403,7 @@ fn part_1(mut blizzards: Blizzards) -> i32 {
     }
 
     let best_path = best_path.unwrap();
-    best_path.print_path(&mut blizzards);
+    //best_path.print_path(&mut blizzards);
     
     best_path.ideal_score() as i32
 }
@@ -410,6 +421,7 @@ fn main() {
     let mut blizzards = Blizzards::from_map(map);
     println!("Read map of {} x {}", blizzards.length, blizzards.height);
     blizzards.print_map(0);
+    //blizzards.print_map(blizzards.length * blizzards.height);
 
     let now = Instant::now();
     use std::time::Instant;
