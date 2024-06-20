@@ -81,6 +81,20 @@ impl Point {
 
         rval
     }
+
+    fn dist(&self, other: &Self) -> usize {
+        let x_dist = if self.x > other.x {
+            self.x - other.x
+        } else {
+            other.x - self.x
+        };
+        let y_dist = if self.y > other.y {
+            self.y - other.y
+        } else {
+            other.y - self.y
+        };
+        x_dist + y_dist
+    }
 }
 
 fn read_file(filename: &str) -> HashMap<Point, Vec<Direction>> {
@@ -221,6 +235,14 @@ impl Blizzards {
         }
     }
 
+    fn copy_at_time(&mut self, t:usize) -> Self {
+        Blizzards {
+            length: self.length,
+            height: self.height,
+            maps: vec![self.get_map(t).clone()]
+        }
+    }
+
     fn gen_next_map(&mut self) {
         self.maps.push(next_bliz_map(
             self.maps.last().expect("No maps in blizzard"),
@@ -250,15 +272,17 @@ impl Blizzards {
 struct Path {
     moves: Vec<Point>,
     length: usize,
-    height: usize
+    height: usize,
+    goal: Point
 }
 
 impl Path {
-    fn from_blizzards(b: &Blizzards) -> Self {
+    fn new(start: Point, length: usize, height: usize, goal: Point) -> Self {
         Self {
-            moves: vec![Point{x: 1, y: 0}],
-            length: b.length,
-            height: b.height
+            moves: vec![start],
+            length,
+            height,
+            goal
         }
     }
 
@@ -285,19 +309,16 @@ impl Path {
         rval
     }
 
-    fn ideal_score(&self) -> usize {
-        let mut rval = self.moves.len() - 1;
+    fn score(&self) -> usize {
         let cur_pos = self.moves.last().expect("moves was empty?");
-        rval += self.length - cur_pos.x;
-        rval += self.height + 1 - cur_pos.y;
 
-        rval
+        self.moves.len() - 1 + self.goal.dist(cur_pos)
     }
 
     fn is_done(&self) -> bool {
         let cur_pos = self.moves.last().expect("moves was empty?");
 
-        cur_pos.x == self.length && cur_pos.y == self.height + 1
+        self.goal.eq(cur_pos)
     }
 
     #[allow(dead_code)]
@@ -344,7 +365,7 @@ impl Path {
 
 impl Ord for Path {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.ideal_score().cmp(&other.ideal_score())
+        self.score().cmp(&other.score())
     }
 }
 
@@ -356,14 +377,14 @@ impl PartialOrd for Path {
 
 impl PartialEq for Path {
     fn eq(&self, other: &Self) -> bool {
-        self.ideal_score() == other.ideal_score()
+        self.score() == other.score()
     }
 }
 
 impl Eq for Path { }
 
-fn part_1(mut blizzards: Blizzards) -> i32 {
-    let p = Path::from_blizzards(&blizzards);
+fn find_best_path(start: Point, goal: Point, blizzards: &mut Blizzards) -> Path {
+    let p = Path::new(start, blizzards.length, blizzards.height, goal);
     let mut paths = BinaryHeap::new();
     //let mut paths = Vec::new();
     paths.push(Reverse(p));
@@ -375,11 +396,9 @@ fn part_1(mut blizzards: Blizzards) -> i32 {
         if p.is_done() {
             if let Some(ref b) = best_path {
                 if p < *b {
-                    println!("Best path now {}", p.ideal_score());
                     best_path = Some(p);
                 }
             } else {
-                println!("Best path now {}", p.ideal_score());
                 best_path = Some(p);
             }
             continue;
@@ -393,7 +412,7 @@ fn part_1(mut blizzards: Blizzards) -> i32 {
         }
 
 
-        let new_paths = Path::next_paths(p, &mut blizzards);
+        let new_paths = Path::next_paths(p, blizzards);
         for p in new_paths {
             if !visited.contains(&(*p.moves.last().unwrap(), p.moves.len())) {
                 visited.insert((*p.moves.last().unwrap(), p.moves.len()));
@@ -402,14 +421,29 @@ fn part_1(mut blizzards: Blizzards) -> i32 {
         }
     }
 
-    let best_path = best_path.unwrap();
-    //best_path.print_path(&mut blizzards);
-    
-    best_path.ideal_score() as i32
+    best_path.unwrap()
 }
 
-fn part_2(mut _blizzards: Blizzards) -> i32 {
-    0
+fn part_1(mut blizzards: Blizzards) -> i32 {
+    let start = Point{x: 1, y: 0};
+    let goal = Point{x: blizzards.length, y: blizzards.height + 1};
+    let best_path = find_best_path(start, goal, &mut blizzards);
+    
+    best_path.score() as i32
+}
+
+fn part_2(mut blizzards: Blizzards) -> i32 {
+    let start = Point{x: 1, y: 0};
+    let goal = Point{x: blizzards.length, y: blizzards.height + 1};
+    let path_1 = find_best_path(start, goal, &mut blizzards);
+
+    let mut b_2 = blizzards.copy_at_time(path_1.score());
+    let path_2 = find_best_path(goal, start, &mut b_2);
+
+    let mut b_3 = b_2.copy_at_time(path_2.score());
+    let path_3 = find_best_path(start, goal, &mut b_3);
+
+    path_1.score() as i32 + path_2.score() as i32 + path_3.score() as i32
 }
 
 fn main() {
@@ -443,8 +477,8 @@ fn main() {
     println!("Took {:.5?}", elapsed);
 
     if FILENAME == "./test" {
-        //assert_eq!(answer, 20);
+        assert_eq!(answer, 54);
     } else {
-        //assert_eq!(answer, 925);
+        assert_eq!(answer, 809);
     }
 }
